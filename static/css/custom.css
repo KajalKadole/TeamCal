@@ -119,6 +119,54 @@
     animation: fadeIn 0.3s ease-out;
 }
 
+/* Team member cards */
+.team-member-card {
+    transition: all 0.2s ease;
+    background: var(--bs-body-bg);
+}
+
+.team-member-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.avatar {
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.status-indicators .badge {
+    font-size: 0.75em;
+    font-weight: 500;
+}
+
+/* Team info in calendar day cells */
+.team-day-info {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    right: 2px;
+    z-index: 1;
+}
+
+.mini-indicator {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 2px;
+    padding: 1px 3px;
+    margin-bottom: 1px;
+}
+
+/* Calendar day cell styling */
+.fc-daygrid-day {
+    position: relative;
+    min-height: 100px;
+}
+
+.fc-daygrid-day-frame {
+    position: relative;
+    min-height: 100px;
+}
+
 /* Calendar event styling improvements */
 .fc-event {
     border-radius: 4px;

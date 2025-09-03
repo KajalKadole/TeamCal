@@ -4,42 +4,22 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-9">
+    <div class="col-12">
         <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-calendar me-2"></i>
                     {% if current_user.is_admin %}Master Calendar{% else %}My Calendar{% endif %}
                 </h5>
-            </div>
-            <div class="card-body">
-                <div id="calendar"></div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <!-- Calendar Controls -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-sliders-h me-2"></i>Controls
-                </h6>
-            </div>
-            <div class="card-body">
-                {% if current_user.is_admin %}
-                <div class="mb-3">
-                    <label class="form-label">Filter by Employee</label>
-                    <select id="userFilter" class="form-select">
+                <div class="d-flex gap-2">
+                    {% if current_user.is_admin %}
+                    <select id="userFilter" class="form-select form-select-sm" style="width: 200px;">
                         <option value="all">All Employees</option>
                         {% for user in users %}
                         <option value="{{ user.id }}">{{ user.username }}</option>
                         {% endfor %}
                     </select>
-                </div>
-                {% endif %}
-                
-                <div class="d-grid gap-2">
+                    {% endif %}
                     <button class="btn btn-success btn-sm" onclick="showAddModal('availability')">
                         <i class="fas fa-plus me-1"></i>Add Availability
                     </button>
@@ -51,33 +31,74 @@
                     </button>
                 </div>
             </div>
+            <div class="card-body">
+                <div id="calendar"></div>
+            </div>
         </div>
-        
-        <!-- Legend -->
+    </div>
+</div>
+
+<!-- Team Members Section -->
+<div class="row mt-4">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-info-circle me-2"></i>Legend
-                </h6>
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Team Members
+                </h5>
             </div>
             <div class="card-body">
-                <div class="d-flex align-items-center mb-2">
-                    <span class="badge bg-success me-2">
-                        <i class="fas fa-check-circle"></i>
-                    </span>
-                    <small>Available</small>
+                <div class="row">
+                    {% for user in users %}
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="team-member-card p-3 border rounded">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    {{ user.username[0]|upper }}
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ user.username }}</h6>
+                                    <small class="text-muted">{{ user.email }}</small>
+                                </div>
+                            </div>
+                            <div class="status-indicators">
+                                <span class="badge bg-success me-1" id="available-{{ user.id }}">0 Available</span>
+                                <span class="badge bg-danger me-1" id="busy-{{ user.id }}">0 Busy</span>
+                                <span class="badge bg-warning" id="leave-{{ user.id }}">0 Leave</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                <div class="d-flex align-items-center mb-2">
-                    <span class="badge bg-danger me-2">
-                        <i class="fas fa-times-circle"></i>
-                    </span>
-                    <small>Busy</small>
-                </div>
-                <div class="d-flex align-items-center">
-                    <span class="badge bg-warning me-2">
-                        <i class="fas fa-calendar-times"></i>
-                    </span>
-                    <small>On Leave</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <span class="badge bg-success me-2">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                        <small>Available - Employee is free and ready to work</small>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="badge bg-danger me-2">
+                            <i class="fas fa-times-circle"></i>
+                        </span>
+                        <small>Busy - Employee has meetings or commitments</small>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="badge bg-warning me-2">
+                            <i class="fas fa-calendar-times"></i>
+                        </span>
+                        <small>On Leave - Employee is on vacation or time off</small>
+                    </div>
                 </div>
             </div>
         </div>

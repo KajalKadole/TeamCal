@@ -1,6 +1,7 @@
 let calendar;
 let currentEventType = null;
 let selectedEvent = null;
+let allEvents = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
@@ -13,7 +14,19 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         height: 'auto',
-        events: '/api/events',
+        events: function(fetchInfo, successCallback, failureCallback) {
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(data => {
+                    allEvents = data;
+                    updateTeamMemberCounts(data);
+                    successCallback(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching events:', error);
+                    failureCallback(error);
+                });
+        },
         eventClick: function(info) {
             showEventDetails(info.event);
         },
@@ -30,6 +43,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (eventType) {
                 info.el.classList.add(`calendar-event-${eventType}`);
             }
+        },
+        dayCellDidMount: function(info) {
+            // Add team member info to each day cell
+            addTeamMemberInfoToDay(info);
         },
         loading: function(isLoading) {
             // Show loading indicator
@@ -49,9 +66,25 @@ document.addEventListener('DOMContentLoaded', function() {
     if (userFilter) {
         userFilter.addEventListener('change', function() {
             const userId = this.value;
-            const url = userId === 'all' ? '/api/events' : `/api/events?user_id=${userId}`;
-            calendar.removeAllEventSources();
-            calendar.addEventSource(url);
+            if (userId === 'all') {
+                fetch('/api/events')
+                    .then(response => response.json())
+                    .then(data => {
+                        allEvents = data;
+                        calendar.removeAllEventSources();
+                        calendar.addEventSource(data);
+                        updateTeamMemberCounts(data);
+                    });
+            } else {
+                fetch(`/api/events?user_id=${userId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        allEvents = data;
+                        calendar.removeAllEventSources();
+                        calendar.addEventSource(data);
+                        updateTeamMemberCounts(data);
+                    });
+            }
         });
     }
     
@@ -184,7 +217,14 @@ function addEvent() {
     .then(data => {
         if (data.success) {
             showAlert(`${capitalizeFirst(currentEventType)} added successfully!`, 'success');
-            calendar.refetchEvents();
+            // Refetch events and update team member counts
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    allEvents = events;
+                    updateTeamMemberCounts(events);
+                    calendar.refetchEvents();
+                });
             bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
         } else {
             showAlert(`Error: ${data.error}`, 'danger');
@@ -271,7 +311,14 @@ function deleteEvent() {
     .then(data => {
         if (data.success) {
             showAlert('Event deleted successfully!', 'success');
-            calendar.refetchEvents();
+            // Refetch events and update team member counts
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    allEvents = events;
+                    updateTeamMemberCounts(events);
+                    calendar.refetchEvents();
+                });
             bootstrap.Modal.getInstance(document.getElementById('eventDetailsModal')).hide();
         } else {
             showAlert(`Error: ${data.error}`, 'danger');
@@ -328,6 +375,96 @@ function formatTime(date) {
         minute: '2-digit',
         hour12: true
     });
+}
+
+// Update team member status counters
+function updateTeamMemberCounts(events) {
+    // Reset all counters
+    document.querySelectorAll('[id^="available-"], [id^="busy-"], [id^="leave-"]').forEach(el => {
+        el.textContent = '0 ' + el.textContent.split(' ').slice(1).join(' ');
+    });
+    
+    // Count events by user and type
+    const counts = {};
+    events.forEach(event => {
+        const userId = event.user_id;
+        const type = event.type;
+        
+        if (!counts[userId]) {
+            counts[userId] = { availability: 0, busy: 0, leave: 0 };
+        }
+        counts[userId][type]++;
+    });
+    
+    // Update the display
+    Object.keys(counts).forEach(userId => {
+        const availableEl = document.getElementById(`available-${userId}`);
+        const busyEl = document.getElementById(`busy-${userId}`);
+        const leaveEl = document.getElementById(`leave-${userId}`);
+        
+        if (availableEl) availableEl.textContent = `${counts[userId].availability} Available`;
+        if (busyEl) busyEl.textContent = `${counts[userId].busy} Busy`;
+        if (leaveEl) leaveEl.textContent = `${counts[userId].leave} Leave`;
+    });
+}
+
+// Add team member info to calendar day cells
+function addTeamMemberInfoToDay(info) {
+    const dateStr = info.date.toISOString().split('T')[0];
+    const dayEvents = allEvents.filter(event => 
+        event.start.startsWith(dateStr) || event.start === dateStr
+    );
+    
+    if (dayEvents.length > 0) {
+        const teamInfo = document.createElement('div');
+        teamInfo.className = 'team-day-info mt-1';
+        
+        // Group events by user
+        const userEvents = {};
+        dayEvents.forEach(event => {
+            const userName = event.title.split(' - ')[0];
+            if (!userEvents[userName]) {
+                userEvents[userName] = [];
+            }
+            userEvents[userName].push(event);
+        });
+        
+        // Create mini status indicators
+        Object.keys(userEvents).slice(0, 3).forEach(userName => {
+            const userEvent = userEvents[userName][0]; // Take first event for this user
+            const type = userEvent.type;
+            let color = '#6c757d';
+            let icon = 'circle';
+            
+            if (type === 'availability') {
+                color = '#28a745';
+                icon = 'check-circle';
+            } else if (type === 'busy') {
+                color = '#dc3545';
+                icon = 'times-circle';
+            } else if (type === 'leave') {
+                color = '#ffc107';
+                icon = 'calendar-times';
+            }
+            
+            const indicator = document.createElement('div');
+            indicator.className = 'mini-indicator d-flex align-items-center mb-1';
+            indicator.innerHTML = `
+                <i class="fas fa-${icon} me-1" style="color: ${color}; font-size: 0.7em;"></i>
+                <span style="font-size: 0.65em; color: ${color};">${userName.split(' ')[0]}</span>
+            `;
+            teamInfo.appendChild(indicator);
+        });
+        
+        if (Object.keys(userEvents).length > 3) {
+            const moreIndicator = document.createElement('div');
+            moreIndicator.className = 'mini-indicator';
+            moreIndicator.innerHTML = `<small style="font-size: 0.6em; color: #6c757d;">+${Object.keys(userEvents).length - 3} more</small>`;
+            teamInfo.appendChild(moreIndicator);
+        }
+        
+        info.el.appendChild(teamInfo);
+    }
 }
 
 // Add current user data to body for JavaScript access
