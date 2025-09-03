@@ -14,6 +14,17 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         height: 'auto',
+        slotLabelFormat: {
+            hour: 'numeric',
+            minute: '2-digit',
+            omitZeroMinute: false,
+            meridiem: 'short'
+        },
+        eventTimeFormat: {
+            hour: 'numeric',
+            minute: '2-digit',
+            meridiem: 'short'
+        },
         events: function(fetchInfo, successCallback, failureCallback) {
             fetch('/api/events')
                 .then(response => response.json())

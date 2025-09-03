@@ -52,7 +52,8 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             {{ form.default_start_time.label(class="form-label") }}
-                            {{ form.default_start_time(class="form-control" + (" is-invalid" if form.default_start_time.errors else "")) }}
+                            {{ form.default_start_time(class="form-control" + (" is-invalid" if form.default_start_time.errors else ""), step="900") }}
+                            <div class="form-text">Times display in 12-hour format (AM/PM)</div>
                             {% if form.default_start_time.errors %}
                                 <div class="invalid-feedback">
                                     {% for error in form.default_start_time.errors %}
@@ -64,7 +65,8 @@
                         
                         <div class="col-md-6 mb-3">
                             {{ form.default_end_time.label(class="form-label") }}
-                            {{ form.default_end_time(class="form-control" + (" is-invalid" if form.default_end_time.errors else "")) }}
+                            {{ form.default_end_time(class="form-control" + (" is-invalid" if form.default_end_time.errors else ""), step="900") }}
+                            <div class="form-text">Times display in 12-hour format (AM/PM)</div>
                             {% if form.default_end_time.errors %}
                                 <div class="invalid-feedback">
                                     {% for error in form.default_end_time.errors %}
