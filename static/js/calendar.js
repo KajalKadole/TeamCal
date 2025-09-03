@@ -115,8 +115,8 @@ function initializeModalHandlers() {
     document.getElementById('eventDate').value = today;
     
     // Set default times from user profile or reasonable defaults
-    document.getElementById('startTime').value = '09:00';
-    document.getElementById('endTime').value = '17:00';
+    setTimeSelectors('start', 9, 0, 'AM');
+    setTimeSelectors('end', 5, 0, 'PM');
 }
 
 function showAddModal(eventType) {
@@ -143,8 +143,8 @@ function showAddModal(eventType) {
             titleField.style.display = 'none';
             leaveTypeField.style.display = 'none';
             descriptionField.style.display = 'none';
-            document.getElementById('startTime').value = '09:00';
-            document.getElementById('endTime').value = '17:00';
+            setTimeSelectors('start', 9, 0, 'AM');
+            setTimeSelectors('end', 5, 0, 'PM');
             break;
             
         case 'busy':
@@ -154,8 +154,8 @@ function showAddModal(eventType) {
             leaveTypeField.style.display = 'none';
             descriptionField.style.display = 'block';
             document.getElementById('eventTitle').value = 'Meeting';
-            document.getElementById('startTime').value = '10:00';
-            document.getElementById('endTime').value = '11:00';
+            setTimeSelectors('start', 10, 0, 'AM');
+            setTimeSelectors('end', 11, 0, 'AM');
             break;
             
         case 'leave':
@@ -180,13 +180,13 @@ function addEvent() {
     // Add type-specific data
     switch (currentEventType) {
         case 'availability':
-            eventData.start_time = document.getElementById('startTime').value;
-            eventData.end_time = document.getElementById('endTime').value;
+            eventData.start_time = getTimeFrom12Hour('start');
+            eventData.end_time = getTimeFrom12Hour('end');
             break;
             
         case 'busy':
-            eventData.start_time = document.getElementById('startTime').value;
-            eventData.end_time = document.getElementById('endTime').value;
+            eventData.start_time = getTimeFrom12Hour('start');
+            eventData.end_time = getTimeFrom12Hour('end');
             eventData.title = document.getElementById('eventTitle').value || 'Busy';
             eventData.description = document.getElementById('eventDescription').value;
             break;
@@ -209,7 +209,7 @@ function addEvent() {
         return;
     }
     
-    if (currentEventType === 'busy' && eventData.start_time >= eventData.end_time) {
+    if (currentEventType !== 'leave' && eventData.start_time >= eventData.end_time) {
         showAlert('End time must be after start time.', 'danger');
         return;
     }
@@ -291,12 +291,12 @@ function showEventDetails(event) {
     // Show edit and delete buttons only for current user's events or if admin
     const editBtn = document.getElementById('editEventBtn');
     const deleteBtn = document.getElementById('deleteEventBtn');
-    const currentUserId = parseInt(document.body.dataset.currentUserId) || 0;
-    const isAdmin = document.body.dataset.isAdmin === 'true';
+    const currentUserId = window.currentUser ? window.currentUser.id : 0;
+    const isAdmin = window.currentUser ? window.currentUser.is_admin : false;
     
     if (event.extendedProps.user_id === currentUserId || isAdmin) {
-        editBtn.style.display = 'block';
-        deleteBtn.style.display = 'block';
+        editBtn.style.display = 'inline-block';
+        deleteBtn.style.display = 'inline-block';
     } else {
         editBtn.style.display = 'none';
         deleteBtn.style.display = 'none';
@@ -379,8 +379,8 @@ function editEvent() {
             
             // Set times for availability
             if (selectedEvent.start && selectedEvent.end) {
-                document.getElementById('startTime').value = formatTimeForInput(selectedEvent.start);
-                document.getElementById('endTime').value = formatTimeForInput(selectedEvent.end);
+                setTimeSelectorsFromDate('start', selectedEvent.start);
+                setTimeSelectorsFromDate('end', selectedEvent.end);
             }
             break;
             
@@ -393,8 +393,8 @@ function editEvent() {
             
             // Set times and details for busy slot
             if (selectedEvent.start && selectedEvent.end) {
-                document.getElementById('startTime').value = formatTimeForInput(selectedEvent.start);
-                document.getElementById('endTime').value = formatTimeForInput(selectedEvent.end);
+                setTimeSelectorsFromDate('start', selectedEvent.start);
+                setTimeSelectorsFromDate('end', selectedEvent.end);
             }
             
             // Extract title (remove username prefix)
@@ -435,13 +435,13 @@ function updateEvent() {
     // Add type-specific data
     switch (currentEventType) {
         case 'availability':
-            eventData.start_time = document.getElementById('startTime').value;
-            eventData.end_time = document.getElementById('endTime').value;
+            eventData.start_time = getTimeFrom12Hour('start');
+            eventData.end_time = getTimeFrom12Hour('end');
             break;
             
         case 'busy':
-            eventData.start_time = document.getElementById('startTime').value;
-            eventData.end_time = document.getElementById('endTime').value;
+            eventData.start_time = getTimeFrom12Hour('start');
+            eventData.end_time = getTimeFrom12Hour('end');
             eventData.title = document.getElementById('eventTitle').value || 'Busy';
             eventData.description = document.getElementById('eventDescription').value;
             break;
@@ -464,7 +464,7 @@ function updateEvent() {
         return;
     }
     
-    if (currentEventType === 'busy' && eventData.start_time >= eventData.end_time) {
+    if (currentEventType !== 'leave' && eventData.start_time >= eventData.end_time) {
         showAlert('End time must be after start time.', 'danger');
         return;
     }
@@ -508,11 +508,40 @@ function updateEvent() {
     });
 }
 
-// Helper function to format time for input fields
-function formatTimeForInput(date) {
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
+// Helper functions for 12-hour time handling
+function setTimeSelectors(prefix, hour, minute, ampm) {
+    document.getElementById(`${prefix}Hour`).value = hour.toString();
+    document.getElementById(`${prefix}Minute`).value = minute.toString().padStart(2, '0');
+    document.getElementById(`${prefix}AmPm`).value = ampm;
+}
+
+function setTimeSelectorsFromDate(prefix, date) {
+    let hour = date.getHours();
+    const minute = date.getMinutes();
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    
+    // Convert to 12-hour format
+    if (hour === 0) hour = 12;
+    else if (hour > 12) hour = hour - 12;
+    
+    setTimeSelectors(prefix, hour, minute, ampm);
+}
+
+function getTimeFrom12Hour(prefix) {
+    const hour = parseInt(document.getElementById(`${prefix}Hour`).value);
+    const minute = parseInt(document.getElementById(`${prefix}Minute`).value);
+    const ampm = document.getElementById(`${prefix}AmPm`).value;
+    
+    if (!hour) return null;
+    
+    let hour24 = hour;
+    if (ampm === 'AM' && hour === 12) {
+        hour24 = 0;
+    } else if (ampm === 'PM' && hour !== 12) {
+        hour24 = hour + 12;
+    }
+    
+    return `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 }
 
 // Utility functions
@@ -654,10 +683,10 @@ function addTeamMemberInfoToDay(info) {
 
 // Add current user data to body for JavaScript access
 document.addEventListener('DOMContentLoaded', function() {
-    // This would be populated by the backend template
-    // For now, we'll handle it gracefully if not present
+    // This is now populated by the backend template in calendar.html
     if (typeof window.currentUser !== 'undefined') {
         document.body.dataset.currentUserId = window.currentUser.id;
         document.body.dataset.isAdmin = window.currentUser.is_admin;
+        console.log('Current user loaded:', window.currentUser);
     }
 });

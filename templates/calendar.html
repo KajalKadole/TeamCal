@@ -123,13 +123,75 @@
                     <div id="timeFields" class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Start Time</label>
-                            <input type="time" id="startTime" class="form-control" required step="900">
-                            <div class="form-text">Times display in 12-hour format (AM/PM)</div>
+                            <div class="row">
+                                <div class="col-5">
+                                    <select id="startHour" class="form-select" required>
+                                        <option value="">Hour</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <select id="startMinute" class="form-select" required>
+                                        <option value="00">00</option>
+                                        <option value="15">15</option>
+                                        <option value="30">30</option>
+                                        <option value="45">45</option>
+                                    </select>
+                                </div>
+                                <div class="col-3">
+                                    <select id="startAmPm" class="form-select" required>
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">End Time</label>
-                            <input type="time" id="endTime" class="form-control" required step="900">
-                            <div class="form-text">Times display in 12-hour format (AM/PM)</div>
+                            <div class="row">
+                                <div class="col-5">
+                                    <select id="endHour" class="form-select" required>
+                                        <option value="">Hour</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                        <option value="8">8</option>
+                                        <option value="9">9</option>
+                                        <option value="10">10</option>
+                                        <option value="11">11</option>
+                                        <option value="12">12</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <select id="endMinute" class="form-select" required>
+                                        <option value="00">00</option>
+                                        <option value="15">15</option>
+                                        <option value="30">30</option>
+                                        <option value="45">45</option>
+                                    </select>
+                                </div>
+                                <div class="col-3">
+                                    <select id="endAmPm" class="form-select" required>
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
@@ -189,5 +251,12 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+// Pass current user data to JavaScript
+window.currentUser = {
+    id: {{ current_user.id }},
+    is_admin: {{ 'true' if current_user.is_admin else 'false' }}
+};
+</script>
 <script src="{{ url_for('static', filename='js/calendar.js') }}"></script>
 {% endblock %}
