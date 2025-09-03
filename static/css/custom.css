@@ -1,0 +1,143 @@
+/* Custom styles for Team Master Calendar */
+
+.calendar-event-available {
+    background-color: var(--bs-success) !important;
+    border-color: var(--bs-success) !important;
+}
+
+.calendar-event-busy {
+    background-color: var(--bs-danger) !important;
+    border-color: var(--bs-danger) !important;
+}
+
+.calendar-event-leave {
+    background-color: var(--bs-warning) !important;
+    border-color: var(--bs-warning) !important;
+    color: var(--bs-dark) !important;
+}
+
+/* FullCalendar custom styling for dark theme */
+.fc {
+    --fc-border-color: var(--bs-border-color);
+    --fc-button-bg-color: var(--bs-primary);
+    --fc-button-border-color: var(--bs-primary);
+    --fc-button-hover-bg-color: var(--bs-primary);
+    --fc-button-hover-border-color: var(--bs-primary);
+    --fc-button-active-bg-color: var(--bs-primary);
+    --fc-button-active-border-color: var(--bs-primary);
+    --fc-event-bg-color: var(--bs-primary);
+    --fc-event-border-color: var(--bs-primary);
+    --fc-event-text-color: var(--bs-white);
+    --fc-neutral-bg-color: var(--bs-gray-800);
+    --fc-page-bg-color: var(--bs-body-bg);
+    --fc-today-bg-color: rgba(var(--bs-primary-rgb), 0.1);
+}
+
+.fc-theme-standard .fc-scrollgrid {
+    border-color: var(--bs-border-color);
+}
+
+.fc-theme-standard td, .fc-theme-standard th {
+    border-color: var(--bs-border-color);
+}
+
+.fc-theme-standard .fc-scrollgrid-section > * {
+    border-color: var(--bs-border-color);
+}
+
+.fc .fc-col-header-cell {
+    color: var(--bs-body-color);
+}
+
+.fc .fc-daygrid-day-number {
+    color: var(--bs-body-color);
+}
+
+.fc .fc-day-today {
+    background-color: rgba(var(--bs-primary-rgb), 0.1) !important;
+}
+
+/* Card shadows and spacing */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Legend styling */
+.badge {
+    font-size: 0.875em;
+}
+
+/* Modal enhancements */
+.modal-content {
+    border: 1px solid var(--bs-border-color);
+}
+
+/* Form validation */
+.is-invalid {
+    border-color: var(--bs-danger);
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .fc-toolbar {
+        flex-direction: column;
+    }
+    
+    .fc-toolbar-chunk {
+        display: flex;
+        justify-content: center;
+        margin: 0.25rem 0;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Animation for smooth transitions */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Calendar event styling improvements */
+.fc-event {
+    border-radius: 4px;
+    font-size: 0.875em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fc-event-title {
+    font-weight: 600;
+}
+
+.fc-event-time {
+    font-weight: normal;
+    opacity: 0.9;
+}

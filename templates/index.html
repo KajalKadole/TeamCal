@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto text-center">
+        <h1 class="display-4 mb-4">
+            <i class="fas fa-calendar-alt text-primary me-3"></i>
+            Team Master Calendar
+        </h1>
+        <p class="lead mb-5">
+            Streamline your team's scheduling with our comprehensive availability management system. 
+            Track employee schedules, manage busy periods, and coordinate leave requests all in one place.
+        </p>
+        
+        {% if not current_user.is_authenticated %}
+        <div class="d-grid gap-2 d-md-block">
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-user-plus me-2"></i>Get Started
+            </a>
+            <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+            </a>
+        </div>
+        {% else %}
+        <div class="d-grid gap-2 d-md-block">
+            <a href="{{ url_for('calendar') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-calendar me-2"></i>View Calendar
+            </a>
+            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-user-cog me-2"></i>Manage Profile
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Availability Management</h5>
+                <p class="card-text">
+                    Set your working hours and available time slots. Team members can easily see when you're free.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-ban fa-3x text-danger mb-3"></i>
+                <h5 class="card-title">Busy Periods</h5>
+                <p class="card-text">
+                    Mark specific time slots as busy with custom descriptions. Keep your team informed about meetings and commitments.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-umbrella-beach fa-3x text-warning mb-3"></i>
+                <h5 class="card-title">Leave Management</h5>
+                <p class="card-text">
+                    Request time off with optional notes. Track vacation days, sick leave, and personal time effortlessly.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-lg-10 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    <i class="fas fa-users me-2"></i>Master Calendar View
+                </h3>
+                <p class="text-center">
+                    The master calendar consolidates all team members' schedules into one comprehensive view. 
+                    Color-coded entries make it easy to identify availability (green), busy periods (red), 
+                    and leave days (yellow) at a glance.
+                </p>
+                
+                <div class="row text-center mt-4">
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <span class="badge bg-success fs-6 mb-2">
+                                <i class="fas fa-check-circle me-1"></i>Available
+                            </span>
+                            <p class="small mb-0">Employee is available during this time</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <span class="badge bg-danger fs-6 mb-2">
+                                <i class="fas fa-times-circle me-1"></i>Busy
+                            </span>
+                            <p class="small mb-0">Employee has meetings or commitments</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <span class="badge bg-warning fs-6 mb-2">
+                                <i class="fas fa-calendar-times me-1"></i>On Leave
+                            </span>
+                            <p class="small mb-0">Employee is on vacation or leave</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

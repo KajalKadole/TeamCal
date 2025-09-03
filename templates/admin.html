@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Team Master Calendar{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>Add Employee
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_employee') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        {{ form.username.label(class="form-label") }}
+                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                        {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.username.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.email.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+                        <div class="form-text">
+                            Employee can change this password after first login
+                        </div>
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback">
+                                {% for error in form.password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- System Stats -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>System Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary">{{ users|length }}</h4>
+                        <small class="text-muted">Total Users</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">{{ users|selectattr('is_admin', 'equalto', False)|list|length }}</h4>
+                        <small class="text-muted">Employees</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Employee Management
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Default Hours</th>
+                                <th>Joined</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-user me-2"></i>{{ user.username }}
+                                </td>
+                                <td>{{ user.email }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if user.is_admin else 'primary' }}">
+                                        {{ 'Admin' if user.is_admin else 'Employee' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if user.default_start_time and user.default_end_time %}
+                                        {{ user.default_start_time }} - {{ user.default_end_time }}
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.created_at.strftime('%m/%d/%Y') }}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" 
+                                                onclick="viewUserCalendar({{ user.id }}, '{{ user.username }}')">
+                                            <i class="fas fa-calendar me-1"></i>Calendar
+                                        </button>
+                                        {% if not user.is_admin %}
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                onclick="resetPassword({{ user.id }}, '{{ user.username }}')">
+                                            <i class="fas fa-key me-1"></i>Reset
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick View Modal -->
+<div class="modal fade" id="quickViewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quickViewTitle">Employee Calendar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="quickViewMessage">Loading calendar data...</p>
+                <div id="quickViewContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="{{ url_for('calendar') }}" class="btn btn-primary">View Full Calendar</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewUserCalendar(userId, username) {
+    const modal = new bootstrap.Modal(document.getElementById('quickViewModal'));
+    document.getElementById('quickViewTitle').textContent = `${username}'s Calendar Summary`;
+    document.getElementById('quickViewMessage').textContent = 'Loading calendar data...';
+    document.getElementById('quickViewContent').innerHTML = '';
+    
+    modal.show();
+    
+    // Fetch user's recent calendar events
+    fetch(`/api/events?user_id=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('quickViewMessage').textContent = `Showing recent entries for ${username}`;
+            
+            if (data.length === 0) {
+                document.getElementById('quickViewContent').innerHTML = '<p class="text-muted">No calendar entries found.</p>';
+                return;
+            }
+            
+            let html = '<div class="list-group">';
+            data.slice(0, 10).forEach(event => {
+                const typeIcon = event.type === 'availability' ? 'check-circle' : 
+                                event.type === 'busy' ? 'times-circle' : 'calendar-times';
+                const typeColor = event.color;
+                
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                <i class="fas fa-${typeIcon}" style="color: ${typeColor}"></i>
+                                ${event.title}
+                            </h6>
+                            <small>${event.start.split('T')[0]}</small>
+                        </div>
+                        ${event.allDay ? '<p class="mb-1">All Day</p>' : 
+                          `<p class="mb-1">${event.start.split('T')[1]} - ${event.end.split('T')[1]}</p>`}
+                        ${event.description || event.notes ? 
+                          `<small class="text-muted">${event.description || event.notes}</small>` : ''}
+                    </div>`;
+            });
+            html += '</div>';
+            
+            if (data.length > 10) {
+                html += `<p class="text-muted mt-2">Showing 10 of ${data.length} entries. View full calendar for more details.</p>`;
+            }
+            
+            document.getElementById('quickViewContent').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('quickViewMessage').textContent = 'Error loading calendar data.';
+            document.getElementById('quickViewContent').innerHTML = '<p class="text-danger">Failed to load calendar entries.</p>';
+        });
+}
+
+function resetPassword(userId, username) {
+    if (confirm(`Reset password for ${username}? They will need to use the new temporary password to log in.`)) {
+        // This would typically make an API call to reset the password
+        alert('Password reset functionality would be implemented here.');
+    }
+}
+</script>
+{% endblock %}

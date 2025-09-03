@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Team Master Calendar{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-user-cog me-2"></i>Profile Settings
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.username.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.email.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    <h5 class="mb-3">
+                        <i class="fas fa-clock me-2"></i>Default Working Hours
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Set your typical working hours. These will be used as defaults when adding availability.
+                    </p>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.default_start_time.label(class="form-label") }}
+                            {{ form.default_start_time(class="form-control" + (" is-invalid" if form.default_start_time.errors else "")) }}
+                            {% if form.default_start_time.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.default_start_time.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            {{ form.default_end_time.label(class="form-label") }}
+                            {{ form.default_end_time(class="form-control" + (" is-invalid" if form.default_end_time.errors else "")) }}
+                            {% if form.default_end_time.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.default_end_time.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Account Information -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Account Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Account Type:</strong>
+                        <span class="badge bg-{{ 'danger' if current_user.is_admin else 'primary' }}">
+                            {{ 'Administrator' if current_user.is_admin else 'Employee' }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Member Since:</strong>
+                        {{ current_user.created_at.strftime('%B %d, %Y') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2 d-md-block">
+                    <a href="{{ url_for('calendar') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-calendar me-1"></i>View Calendar
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin') }}" class="btn btn-outline-danger">
+                        <i class="fas fa-cog me-1"></i>Admin Panel
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
