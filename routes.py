@@ -252,6 +252,46 @@ def add_leave_day():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
+@app.route('/api/events/<event_type>/<int:event_id>', methods=['PUT'])
+@login_required
+def update_event(event_type, event_id):
+    try:
+        data = request.get_json()
+        
+        if event_type == 'availability':
+            event = AvailabilitySlot.query.get_or_404(event_id)
+        elif event_type == 'busy':
+            event = BusySlot.query.get_or_404(event_id)
+        elif event_type == 'leave':
+            event = LeaveDay.query.get_or_404(event_id)
+        else:
+            return jsonify({'success': False, 'error': 'Invalid event type'}), 400
+        
+        # Check if user owns the event or is admin
+        if event.user_id != current_user.id and not current_user.is_admin:
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        # Update common fields
+        event.date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+        
+        # Update type-specific fields
+        if event_type == 'availability':
+            event.start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+            event.end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+        elif event_type == 'busy':
+            event.start_time = datetime.strptime(data['start_time'], '%H:%M').time()
+            event.end_time = datetime.strptime(data['end_time'], '%H:%M').time()
+            event.title = data.get('title', 'Busy')
+            event.description = data.get('description', '')
+        elif event_type == 'leave':
+            event.leave_type = data.get('leave_type', 'Leave')
+            event.notes = data.get('notes', '')
+        
+        db.session.commit()
+        return jsonify({'success': True, 'id': event.id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 @app.route('/api/events/<event_type>/<int:event_id>', methods=['DELETE'])
 @login_required
 def delete_event(event_type, event_id):

@@ -288,14 +288,17 @@ function showEventDetails(event) {
         `;
     }
     
-    // Show delete button only for current user's events or if admin
+    // Show edit and delete buttons only for current user's events or if admin
+    const editBtn = document.getElementById('editEventBtn');
     const deleteBtn = document.getElementById('deleteEventBtn');
     const currentUserId = parseInt(document.body.dataset.currentUserId) || 0;
     const isAdmin = document.body.dataset.isAdmin === 'true';
     
     if (event.extendedProps.user_id === currentUserId || isAdmin) {
+        editBtn.style.display = 'block';
         deleteBtn.style.display = 'block';
     } else {
+        editBtn.style.display = 'none';
         deleteBtn.style.display = 'none';
     }
     
@@ -339,6 +342,177 @@ function deleteEvent() {
         console.error('Error:', error);
         showAlert('An error occurred while deleting the event.', 'danger');
     });
+}
+
+function editEvent() {
+    if (!selectedEvent) return;
+    
+    // Close the details modal
+    bootstrap.Modal.getInstance(document.getElementById('eventDetailsModal')).hide();
+    
+    // Determine event type from the ID prefix
+    const eventId = selectedEvent.id;
+    const eventType = selectedEvent.extendedProps.type;
+    
+    // Set up the modal for editing
+    const modal = new bootstrap.Modal(document.getElementById('addEventModal'));
+    const modalTitle = document.getElementById('modalTitle');
+    const timeFields = document.getElementById('timeFields');
+    const titleField = document.getElementById('titleField');
+    const leaveTypeField = document.getElementById('leaveTypeField');
+    const descriptionField = document.getElementById('descriptionField');
+    
+    // Set current event type for editing
+    currentEventType = eventType;
+    
+    // Pre-fill the form with current event data
+    document.getElementById('eventDate').value = selectedEvent.start.toISOString().split('T')[0];
+    
+    // Configure modal based on event type
+    switch (eventType) {
+        case 'availability':
+            modalTitle.textContent = 'Edit Availability';
+            timeFields.style.display = 'block';
+            titleField.style.display = 'none';
+            leaveTypeField.style.display = 'none';
+            descriptionField.style.display = 'none';
+            
+            // Set times for availability
+            if (selectedEvent.start && selectedEvent.end) {
+                document.getElementById('startTime').value = formatTimeForInput(selectedEvent.start);
+                document.getElementById('endTime').value = formatTimeForInput(selectedEvent.end);
+            }
+            break;
+            
+        case 'busy':
+            modalTitle.textContent = 'Edit Busy Period';
+            timeFields.style.display = 'block';
+            titleField.style.display = 'block';
+            leaveTypeField.style.display = 'none';
+            descriptionField.style.display = 'block';
+            
+            // Set times and details for busy slot
+            if (selectedEvent.start && selectedEvent.end) {
+                document.getElementById('startTime').value = formatTimeForInput(selectedEvent.start);
+                document.getElementById('endTime').value = formatTimeForInput(selectedEvent.end);
+            }
+            
+            // Extract title (remove username prefix)
+            const titleParts = selectedEvent.title.split(' - ');
+            document.getElementById('eventTitle').value = titleParts.length > 1 ? titleParts.slice(1).join(' - ') : titleParts[0];
+            document.getElementById('eventDescription').value = selectedEvent.extendedProps.description || '';
+            break;
+            
+        case 'leave':
+            modalTitle.textContent = 'Edit Leave Request';
+            timeFields.style.display = 'none';
+            titleField.style.display = 'none';
+            leaveTypeField.style.display = 'block';
+            descriptionField.style.display = 'block';
+            
+            // Extract leave type from title
+            const leaveTitleParts = selectedEvent.title.split(' - ');
+            const leaveType = leaveTitleParts.length > 1 ? leaveTitleParts[1] : 'Leave';
+            document.getElementById('leaveType').value = leaveType;
+            document.getElementById('eventDescription').value = selectedEvent.extendedProps.notes || '';
+            break;
+    }
+    
+    // Change the button text to indicate editing
+    const submitBtn = document.querySelector('#addEventModal .btn-primary');
+    submitBtn.textContent = 'Update Event';
+    submitBtn.onclick = updateEvent;
+    
+    modal.show();
+}
+
+function updateEvent() {
+    const eventData = {
+        date: document.getElementById('eventDate').value,
+        type: currentEventType
+    };
+    
+    // Add type-specific data
+    switch (currentEventType) {
+        case 'availability':
+            eventData.start_time = document.getElementById('startTime').value;
+            eventData.end_time = document.getElementById('endTime').value;
+            break;
+            
+        case 'busy':
+            eventData.start_time = document.getElementById('startTime').value;
+            eventData.end_time = document.getElementById('endTime').value;
+            eventData.title = document.getElementById('eventTitle').value || 'Busy';
+            eventData.description = document.getElementById('eventDescription').value;
+            break;
+            
+        case 'leave':
+            eventData.leave_type = document.getElementById('leaveType').value;
+            eventData.notes = document.getElementById('eventDescription').value;
+            break;
+    }
+    
+    // Validate required fields
+    if (!eventData.date) {
+        showAlert('Please select a date.', 'danger');
+        return;
+    }
+    
+    if ((currentEventType === 'availability' || currentEventType === 'busy') && 
+        (!eventData.start_time || !eventData.end_time)) {
+        showAlert('Please select start and end times.', 'danger');
+        return;
+    }
+    
+    if (currentEventType === 'busy' && eventData.start_time >= eventData.end_time) {
+        showAlert('End time must be after start time.', 'danger');
+        return;
+    }
+    
+    // Extract the actual ID from the selected event
+    const actualId = selectedEvent.id.split('-')[1];
+    const endpoint = `/api/events/${currentEventType}/${actualId}`;
+    
+    fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`${capitalizeFirst(currentEventType)} updated successfully!`, 'success');
+            // Refetch events and update team member counts
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    allEvents = events;
+                    updateTeamMemberCounts(events);
+                    calendar.refetchEvents();
+                });
+            bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
+            
+            // Reset the button back to "Add Event"
+            const submitBtn = document.querySelector('#addEventModal .btn-primary');
+            submitBtn.textContent = 'Add Event';
+            submitBtn.onclick = addEvent;
+        } else {
+            showAlert(`Error: ${data.error}`, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('An error occurred while updating the event.', 'danger');
+    });
+}
+
+// Helper function to format time for input fields
+function formatTimeForInput(date) {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
 }
 
 // Utility functions
