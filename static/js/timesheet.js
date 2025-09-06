@@ -390,7 +390,7 @@ function getStartOfWeek(date) {
 }
 
 function downloadTimesheet() {
-    // For now, create a simple CSV download
+    // Use the server-side CSV download endpoint
     const currentDate = new Date();
     const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -400,19 +400,8 @@ function downloadTimesheet() {
         end_date: endDate.toISOString().split('T')[0]
     });
     
-    fetch(`/api/timesheet/entries?${params}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                downloadCSV(data.entries);
-            } else {
-                showAlert('Error downloading timesheet: ' + data.error, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('Failed to download timesheet', 'danger');
-        });
+    // Open the download URL directly to trigger file download
+    window.open(`/api/timesheet/download?${params}`, '_blank');
 }
 
 function downloadCSV(entries) {
