@@ -63,8 +63,8 @@ class LeaveDay(db.Model):
 
 class TimesheetEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    date = db.Column(db.Date, nullable=False, index=True)
     clock_in = db.Column(db.DateTime, nullable=False)
     clock_out = db.Column(db.DateTime, nullable=True)  # Null when still clocked in
     break_duration = db.Column(db.Integer, default=0)  # Break time in minutes
