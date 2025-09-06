@@ -303,7 +303,10 @@ function showEventDetails(event) {
     }
     
     html += '</div>';
-    detailsContainer.innerHTML = html;
+    detailsContainer.textContent = '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    detailsContainer.appendChild(tempDiv);
     modal.show();
 }
 
@@ -549,10 +552,14 @@ function showAlert(message, type) {
     const alertContainer = document.querySelector('.container');
     const alert = document.createElement('div');
     alert.className = `alert alert-${type} alert-dismissible fade show mt-3`;
-    alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
+    const messageSpan = document.createElement('span');
+    messageSpan.textContent = message;
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'btn-close';
+    closeBtn.setAttribute('data-bs-dismiss', 'alert');
+    alert.appendChild(messageSpan);
+    alert.appendChild(closeBtn);
     
     // Insert after the first child (usually the nav container)
     const firstCard = alertContainer.querySelector('.row');
@@ -663,17 +670,24 @@ function addTeamMemberInfoToDay(info) {
             
             const indicator = document.createElement('div');
             indicator.className = 'mini-indicator d-flex align-items-center mb-1';
-            indicator.innerHTML = `
-                <i class="fas fa-${icon} me-1" style="color: ${color}; font-size: 0.7em;"></i>
-                <span style="font-size: 0.65em; color: ${color};">${userName.split(' ')[0]}</span>
-            `;
+            const iconEl = document.createElement('i');
+            iconEl.className = `fas fa-${icon} me-1`;
+            iconEl.style.cssText = `color: ${color}; font-size: 0.7em;`;
+            const spanEl = document.createElement('span');
+            spanEl.textContent = userName.split(' ')[0];
+            spanEl.style.cssText = `font-size: 0.65em; color: ${color};`;
+            indicator.appendChild(iconEl);
+            indicator.appendChild(spanEl);
             teamInfo.appendChild(indicator);
         });
         
         if (Object.keys(userEvents).length > 3) {
             const moreIndicator = document.createElement('div');
             moreIndicator.className = 'mini-indicator';
-            moreIndicator.innerHTML = `<small style="font-size: 0.6em; color: #6c757d;">+${Object.keys(userEvents).length - 3} more</small>`;
+            const smallEl = document.createElement('small');
+            smallEl.textContent = `+${Object.keys(userEvents).length - 3} more`;
+            smallEl.style.cssText = 'font-size: 0.6em; color: #6c757d;';
+            moreIndicator.appendChild(smallEl);
             teamInfo.appendChild(moreIndicator);
         }
         
@@ -721,12 +735,16 @@ function updateLiveStatusDisplay(teamStatus) {
     }
     
     if (workingMembers.length === 0) {
-        container.innerHTML = `
-            <div class="text-muted d-flex align-items-center">
-                <i class="fas fa-moon me-2"></i>
-                <span>No one is currently working</span>
-            </div>
-        `;
+        container.textContent = '';
+        const noWorkDiv = document.createElement('div');
+        noWorkDiv.className = 'text-muted d-flex align-items-center';
+        const moonIcon = document.createElement('i');
+        moonIcon.className = 'fas fa-moon me-2';
+        const noWorkSpan = document.createElement('span');
+        noWorkSpan.textContent = 'No one is currently working';
+        noWorkDiv.appendChild(moonIcon);
+        noWorkDiv.appendChild(noWorkSpan);
+        container.appendChild(noWorkDiv);
         return;
     }
     
@@ -748,7 +766,12 @@ function updateLiveStatusDisplay(teamStatus) {
         `;
     });
     
-    container.innerHTML = html;
+    container.textContent = '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    while (tempDiv.firstChild) {
+        container.appendChild(tempDiv.firstChild);
+    }
 }
 
 function getStatusColor(status) {
@@ -788,12 +811,16 @@ function showOfflineStatus() {
     const onlineCountElement = document.getElementById('onlineCount');
     
     if (container) {
-        container.innerHTML = `
-            <div class="text-muted d-flex align-items-center">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <span>Unable to load team status</span>
-            </div>
-        `;
+        container.textContent = '';
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'text-muted d-flex align-items-center';
+        const errorIcon = document.createElement('i');
+        errorIcon.className = 'fas fa-exclamation-triangle me-2';
+        const errorSpan = document.createElement('span');
+        errorSpan.textContent = 'Unable to load team status';
+        errorDiv.appendChild(errorIcon);
+        errorDiv.appendChild(errorSpan);
+        container.appendChild(errorDiv);
     }
     
     if (onlineCountElement) {
