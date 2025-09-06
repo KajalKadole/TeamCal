@@ -487,16 +487,20 @@ def get_team_status():
         if not current_user.is_admin:
             return jsonify({'success': False, 'error': 'Access denied'}), 403
         
-        # Get all users with their status
+        # Get all users with their status and active timesheets in bulk
         users_query = db.session.query(User, UserStatus).outerjoin(UserStatus).all()
+        
+        # Bulk fetch active timesheet entries to avoid N+1 queries
+        user_ids = [user.id for user, _ in users_query]
+        active_entries = db.session.query(TimesheetEntry).filter(
+            TimesheetEntry.user_id.in_(user_ids),
+            TimesheetEntry.clock_out.is_(None)
+        ).all()
+        active_entries_by_user = {entry.user_id: entry for entry in active_entries}
         
         team_status = []
         for user, status in users_query:
-            # Check for active timesheet
-            active_entry = TimesheetEntry.query.filter_by(
-                user_id=user.id,
-                clock_out=None
-            ).first()
+            active_entry = active_entries_by_user.get(user.id)
             
             team_status.append({
                 'user_id': user.id,
@@ -522,13 +526,17 @@ def get_public_team_status():
         # Get all users with their status (limited info)
         users_query = db.session.query(User, UserStatus).outerjoin(UserStatus).all()
         
+        # Bulk fetch active timesheet entries to avoid N+1 queries
+        user_ids = [user.id for user, _ in users_query]
+        active_entries = db.session.query(TimesheetEntry).filter(
+            TimesheetEntry.user_id.in_(user_ids),
+            TimesheetEntry.clock_out.is_(None)
+        ).all()
+        active_entries_by_user = {entry.user_id: entry for entry in active_entries}
+        
         public_status = []
         for user, status in users_query:
-            # Check for active timesheet
-            active_entry = TimesheetEntry.query.filter_by(
-                user_id=user.id,
-                clock_out=None
-            ).first()
+            active_entry = active_entries_by_user.get(user.id)
             
             # Only show basic info for public status
             if status and status.is_working and active_entry:
