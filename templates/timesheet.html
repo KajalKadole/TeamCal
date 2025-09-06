@@ -235,7 +235,7 @@
 // Pass current user data to JavaScript
 window.currentUser = {
     id: {{ current_user.id }},
-    is_admin: {{ 'true' if current_user.is_admin else 'false' }}
+    is_admin: {{ current_user.is_admin|tojson|safe }}
 };
 </script>
 <script src="{{ url_for('static', filename='js/timesheet.js') }}"></script>
