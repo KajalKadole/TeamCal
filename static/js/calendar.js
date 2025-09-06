@@ -758,7 +758,7 @@ function updateLiveStatusDisplay(teamStatus) {
                 <div class="status-dot bg-${statusColor} rounded-circle me-2" style="width: 8px; height: 8px;"></div>
                 <div class="d-flex flex-column">
                     <strong class="small">${member.username}</strong>
-                    <small class="text-${statusColor}">${member.status_message || 'Available'}</small>
+                    <small class="text-${statusColor}">${member.status_message || (member.is_clocked_in ? 'Working' : 'Offline')}</small>
                     ${member.current_task ? `<small class="text-muted">${member.current_task}</small>` : ''}
                     ${durationText ? `<small class="text-info">${durationText}</small>` : ''}
                 </div>

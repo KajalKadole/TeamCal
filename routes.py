@@ -672,7 +672,7 @@ def get_team_status():
                 'username': user.username,
                 'is_working': status.is_working if status else False,
                 'is_clocked_in': active_entry is not None,
-                'status_message': status.status_message if status else 'Offline',
+                'status_message': status.status_message or 'Working' if active_entry else status.status_message or 'Offline',
                 'current_task': status.current_task if status else '',
                 'last_activity': status.last_activity.isoformat() if status and status.last_activity else None,
                 'clock_in_time': active_entry.clock_in.isoformat() if active_entry else None,
@@ -710,7 +710,7 @@ def get_public_team_status():
                     'username': user.username,
                     'is_working': True,
                     'is_clocked_in': True,
-                    'status_message': status.status_message or 'Available',
+                    'status_message': status.status_message or 'Working',
                     'current_task': status.current_task if status.current_task else '',
                     'current_duration': (datetime.now() - active_entry.clock_in).total_seconds() / 60
                 })
