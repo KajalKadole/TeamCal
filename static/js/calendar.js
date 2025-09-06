@@ -681,6 +681,126 @@ function addTeamMemberInfoToDay(info) {
     }
 }
 
+// Live team status functionality
+function loadLiveTeamStatus() {
+    // Only load if the live status container exists (on calendar page)
+    if (!document.getElementById('liveTeamStatus')) return;
+    
+    // For non-admin users, create a simpler endpoint that doesn't expose detailed team info
+    const endpoint = window.currentUser && window.currentUser.is_admin ? 
+        '/api/team/status' : '/api/team/public-status';
+    
+    fetch(endpoint)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateLiveStatusDisplay(data.team_status || data.public_status || []);
+                updateStatusTimestamp();
+            } else {
+                console.error('Error loading live status:', data.error);
+                showOfflineStatus();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showOfflineStatus();
+        });
+}
+
+function updateLiveStatusDisplay(teamStatus) {
+    const container = document.getElementById('liveTeamStatus');
+    const onlineCountElement = document.getElementById('onlineCount');
+    
+    if (!container) return;
+    
+    const workingMembers = teamStatus.filter(member => member.is_working || member.is_clocked_in);
+    
+    // Update online count
+    if (onlineCountElement) {
+        onlineCountElement.textContent = workingMembers.length;
+    }
+    
+    if (workingMembers.length === 0) {
+        container.innerHTML = `
+            <div class="text-muted d-flex align-items-center">
+                <i class="fas fa-moon me-2"></i>
+                <span>No one is currently working</span>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    workingMembers.forEach(member => {
+        const statusColor = getStatusColor(member.status_message);
+        const durationText = getDurationText(member);
+        
+        html += `
+            <div class="d-inline-flex align-items-center bg-dark rounded-pill px-3 py-2 me-2 mb-2" style="border: 1px solid var(--bs-${statusColor});">
+                <div class="status-dot bg-${statusColor} rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+                <div class="d-flex flex-column">
+                    <strong class="small">${member.username}</strong>
+                    <small class="text-${statusColor}">${member.status_message || 'Available'}</small>
+                    ${member.current_task ? `<small class="text-muted">${member.current_task}</small>` : ''}
+                    ${durationText ? `<small class="text-info">${durationText}</small>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function getStatusColor(status) {
+    switch(status) {
+        case 'Available': return 'success';
+        case 'In Meeting': return 'warning';
+        case 'Busy': return 'danger';
+        case 'On Break': return 'info';
+        case 'Away': return 'secondary';
+        default: return 'success';
+    }
+}
+
+function getDurationText(member) {
+    if (!member.current_duration || member.current_duration <= 0) return '';
+    
+    const hours = Math.floor(member.current_duration / 60);
+    const minutes = Math.floor(member.current_duration % 60);
+    
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    } else {
+        return `${minutes}m`;
+    }
+}
+
+function updateStatusTimestamp() {
+    const element = document.getElementById('statusLastUpdated');
+    if (element) {
+        const now = new Date();
+        element.textContent = `Updated: ${now.toLocaleTimeString()}`;
+    }
+}
+
+function showOfflineStatus() {
+    const container = document.getElementById('liveTeamStatus');
+    const onlineCountElement = document.getElementById('onlineCount');
+    
+    if (container) {
+        container.innerHTML = `
+            <div class="text-muted d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span>Unable to load team status</span>
+            </div>
+        `;
+    }
+    
+    if (onlineCountElement) {
+        onlineCountElement.textContent = '0';
+    }
+}
+
 // Add current user data to body for JavaScript access
 document.addEventListener('DOMContentLoaded', function() {
     // This is now populated by the backend template in calendar.html
@@ -688,5 +808,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.dataset.currentUserId = window.currentUser.id;
         document.body.dataset.isAdmin = window.currentUser.is_admin;
         console.log('Current user loaded:', window.currentUser);
+    }
+    
+    // Load and refresh live team status on calendar page
+    if (document.getElementById('liveTeamStatus')) {
+        loadLiveTeamStatus();
+        setInterval(loadLiveTeamStatus, 30000); // Refresh every 30 seconds
     }
 });

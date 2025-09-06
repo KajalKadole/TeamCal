@@ -189,3 +189,50 @@
     font-weight: normal;
     opacity: 0.9;
 }
+
+/* Live status animations */
+.pulse-dot {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Status dot animations */
+.status-dot {
+    animation: statusPulse 3s infinite ease-in-out;
+}
+
+@keyframes statusPulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* Live team status styling */
+#liveTeamStatus .bg-dark {
+    background-color: rgba(33, 37, 41, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+#liveTeamStatus .bg-dark:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}

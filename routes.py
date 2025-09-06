@@ -514,6 +514,38 @@ def get_team_status():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/team/public-status', methods=['GET'])
+@login_required
+def get_public_team_status():
+    """Get public team status (limited info for non-admin users)"""
+    try:
+        # Get all users with their status (limited info)
+        users_query = db.session.query(User, UserStatus).outerjoin(UserStatus).all()
+        
+        public_status = []
+        for user, status in users_query:
+            # Check for active timesheet
+            active_entry = TimesheetEntry.query.filter_by(
+                user_id=user.id,
+                clock_out=None
+            ).first()
+            
+            # Only show basic info for public status
+            if status and status.is_working and active_entry:
+                public_status.append({
+                    'user_id': user.id,
+                    'username': user.username,
+                    'is_working': True,
+                    'is_clocked_in': True,
+                    'status_message': status.status_message or 'Available',
+                    'current_task': status.current_task if status.current_task else '',
+                    'current_duration': (datetime.now() - active_entry.clock_in).total_seconds() / 60
+                })
+        
+        return jsonify({'success': True, 'public_status': public_status})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/timesheet/entries', methods=['GET'])
 @login_required
 def get_timesheet_entries():

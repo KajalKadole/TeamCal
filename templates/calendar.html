@@ -38,6 +38,29 @@
     </div>
 </div>
 
+<!-- Real-time Team Status Widget -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-circle text-success me-2 pulse-dot"></i>Live Team Status
+                    <span class="badge bg-success ms-2" id="onlineCount">0</span>
+                </h6>
+                <small class="text-muted" id="statusLastUpdated">Updated: --</small>
+            </div>
+            <div class="card-body py-2">
+                <div id="liveTeamStatus" class="d-flex flex-wrap gap-2">
+                    <div class="text-center text-muted">
+                        <div class="spinner-border spinner-border-sm me-2"></div>
+                        Loading live status...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Team Members Section -->
 <div class="row mt-4">
     <div class="col-12">
