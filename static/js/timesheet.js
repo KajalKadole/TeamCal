@@ -473,10 +473,14 @@ function downloadCSV(entries) {
                     minute: '2-digit',
                     second: '2-digit'
                 }) : 'Still Active',
-            entry.duration ? (entry.duration / 60).toFixed(2) : '',
-            `"${entry.location || ''}"`,
-            `"${(entry.notes || '').replace(/"/g, '""')}"`
-        ].join(','))
+                entry.duration > 0 ? (entry.duration / 60).toFixed(2) : '0',
+                entry.break_duration || 0,
+                entry.duration > 0 ? ((entry.duration + (entry.break_duration || 0)) / 60).toFixed(2) : '0',
+                entry.location || 'Office',
+                entry.is_active ? 'Active' : 'Completed',
+                entry.notes || ''
+            ].map(field => `"${field}"`).join(',');
+        })
     ].join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
