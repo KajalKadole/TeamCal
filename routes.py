@@ -2,7 +2,7 @@ from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import app, db
-from models import User, AvailabilitySlot, BusySlot, LeaveDay
+from models import User, AvailabilitySlot, BusySlot, LeaveDay, TimesheetEntry, UserStatus
 from forms import LoginForm, RegistrationForm, AvailabilityForm, BusySlotForm, LeaveDayForm, ProfileForm, AddEmployeeForm
 from datetime import datetime, date, time
 import json
@@ -315,3 +315,249 @@ def delete_event(event_type, event_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
+
+# Timesheet Routes
+@app.route('/timesheet')
+@login_required
+def timesheet():
+    """Timesheet view for logging work hours"""
+    return render_template('timesheet.html')
+
+@app.route('/api/timesheet/clock-in', methods=['POST'])
+@login_required
+def clock_in():
+    """Clock in user and start timesheet entry"""
+    try:
+        data = request.get_json() or {}
+        
+        # Check if user is already clocked in
+        active_entry = TimesheetEntry.query.filter_by(
+            user_id=current_user.id,
+            clock_out=None
+        ).first()
+        
+        if active_entry:
+            return jsonify({'success': False, 'error': 'Already clocked in'}), 400
+        
+        # Create new timesheet entry
+        entry = TimesheetEntry(
+            user_id=current_user.id,
+            date=datetime.now().date(),
+            clock_in=datetime.now(),
+            location=data.get('location', 'Office'),
+            notes=data.get('notes', '')
+        )
+        
+        db.session.add(entry)
+        db.session.flush()  # Ensure entry.id is available
+        
+        # Update user status
+        user_status = UserStatus.query.filter_by(user_id=current_user.id).first()
+        if not user_status:
+            user_status = UserStatus(user_id=current_user.id)
+            db.session.add(user_status)
+        
+        user_status.is_working = True
+        user_status.current_timesheet_id = entry.id
+        user_status.status_message = 'Available'
+        user_status.current_task = data.get('task', '')
+        user_status.last_activity = datetime.now()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'entry_id': entry.id,
+            'clock_in': entry.clock_in.isoformat(),
+            'status': 'clocked_in'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/timesheet/clock-out', methods=['POST'])
+@login_required
+def clock_out():
+    """Clock out user and complete timesheet entry"""
+    try:
+        data = request.get_json() or {}
+        
+        # Find active timesheet entry
+        entry = TimesheetEntry.query.filter_by(
+            user_id=current_user.id,
+            clock_out=None
+        ).first()
+        
+        if not entry:
+            return jsonify({'success': False, 'error': 'Not clocked in'}), 400
+        
+        # Update timesheet entry
+        entry.clock_out = datetime.now()
+        entry.break_duration = data.get('break_duration', 0)
+        if data.get('notes'):
+            entry.notes = data.get('notes')
+        
+        # Update user status
+        user_status = UserStatus.query.filter_by(user_id=current_user.id).first()
+        if user_status:
+            user_status.is_working = False
+            user_status.current_timesheet_id = None
+            user_status.status_message = 'Offline'
+            user_status.current_task = ''
+            user_status.last_activity = datetime.now()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'entry_id': entry.id,
+            'clock_out': entry.clock_out.isoformat(),
+            'duration': entry.duration,
+            'status': 'clocked_out'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/timesheet/status', methods=['GET'])
+@login_required
+def get_timesheet_status():
+    """Get current timesheet status for user"""
+    try:
+        # Check for active entry
+        active_entry = TimesheetEntry.query.filter_by(
+            user_id=current_user.id,
+            clock_out=None
+        ).first()
+        
+        user_status = UserStatus.query.filter_by(user_id=current_user.id).first()
+        
+        if active_entry:
+            return jsonify({
+                'success': True,
+                'is_clocked_in': True,
+                'entry_id': active_entry.id,
+                'clock_in': active_entry.clock_in.isoformat(),
+                'current_duration': (datetime.now() - active_entry.clock_in).total_seconds() / 60,
+                'location': active_entry.location,
+                'current_task': user_status.current_task if user_status else '',
+                'status_message': user_status.status_message if user_status else 'Available'
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'is_clocked_in': False,
+                'current_duration': 0,
+                'status_message': user_status.status_message if user_status else 'Offline'
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/timesheet/update-status', methods=['POST'])
+@login_required
+def update_user_status():
+    """Update user's current status and task"""
+    try:
+        data = request.get_json()
+        
+        user_status = UserStatus.query.filter_by(user_id=current_user.id).first()
+        if not user_status:
+            user_status = UserStatus(user_id=current_user.id)
+            db.session.add(user_status)
+        
+        if 'status_message' in data:
+            user_status.status_message = data['status_message']
+        if 'current_task' in data:
+            user_status.current_task = data['current_task']
+        
+        user_status.last_activity = datetime.now()
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/team/status', methods=['GET'])
+@login_required
+def get_team_status():
+    """Get current status of all team members"""
+    try:
+        if not current_user.is_admin:
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        # Get all users with their status
+        users_query = db.session.query(User, UserStatus).outerjoin(UserStatus).all()
+        
+        team_status = []
+        for user, status in users_query:
+            # Check for active timesheet
+            active_entry = TimesheetEntry.query.filter_by(
+                user_id=user.id,
+                clock_out=None
+            ).first()
+            
+            team_status.append({
+                'user_id': user.id,
+                'username': user.username,
+                'is_working': status.is_working if status else False,
+                'is_clocked_in': active_entry is not None,
+                'status_message': status.status_message if status else 'Offline',
+                'current_task': status.current_task if status else '',
+                'last_activity': status.last_activity.isoformat() if status and status.last_activity else None,
+                'clock_in_time': active_entry.clock_in.isoformat() if active_entry else None,
+                'current_duration': (datetime.now() - active_entry.clock_in).total_seconds() / 60 if active_entry else 0
+            })
+        
+        return jsonify({'success': True, 'team_status': team_status})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/timesheet/entries', methods=['GET'])
+@login_required
+def get_timesheet_entries():
+    """Get timesheet entries for current user or all users (admin)"""
+    try:
+        user_id = request.args.get('user_id', type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Permission check
+        if user_id and user_id != current_user.id and not current_user.is_admin:
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        # Build query
+        query = TimesheetEntry.query
+        
+        if user_id:
+            query = query.filter_by(user_id=user_id)
+        elif not current_user.is_admin:
+            query = query.filter_by(user_id=current_user.id)
+        
+        if start_date:
+            query = query.filter(TimesheetEntry.date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(TimesheetEntry.date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        entries = query.order_by(TimesheetEntry.date.desc(), TimesheetEntry.clock_in.desc()).all()
+        
+        entries_data = []
+        for entry in entries:
+            entries_data.append({
+                'id': entry.id,
+                'user_id': entry.user_id,
+                'username': entry.user.username,
+                'date': entry.date.isoformat(),
+                'clock_in': entry.clock_in.isoformat(),
+                'clock_out': entry.clock_out.isoformat() if entry.clock_out else None,
+                'duration': entry.duration,
+                'break_duration': entry.break_duration,
+                'location': entry.location,
+                'notes': entry.notes,
+                'is_active': entry.is_active
+            })
+        
+        return jsonify({'success': True, 'entries': entries_data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
