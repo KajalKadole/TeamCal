@@ -17,6 +17,8 @@ class User(UserMixin, db.Model):
     availability_slots = db.relationship('AvailabilitySlot', backref='user', lazy=True, cascade='all, delete-orphan')
     busy_slots = db.relationship('BusySlot', backref='user', lazy=True, cascade='all, delete-orphan')
     leave_days = db.relationship('LeaveDay', backref='user', lazy=True, cascade='all, delete-orphan')
+    timesheet_entries = db.relationship('TimesheetEntry', backref='user', lazy=True, cascade='all, delete-orphan')
+    user_status = db.relationship('UserStatus', backref='user', lazy=True, uselist=False, cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<User {self.username}>'
@@ -58,3 +60,44 @@ class LeaveDay(db.Model):
     
     def __repr__(self):
         return f'<LeaveDay {self.user.username} {self.date} {self.leave_type}>'
+
+class TimesheetEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    clock_in = db.Column(db.DateTime, nullable=False)
+    clock_out = db.Column(db.DateTime, nullable=True)  # Null when still clocked in
+    break_duration = db.Column(db.Integer, default=0)  # Break time in minutes
+    notes = db.Column(db.Text)
+    location = db.Column(db.String(50), default='Office')  # Office, Remote, etc.
+    created_at = db.Column(db.DateTime, default=func.now())
+    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+    
+    @property
+    def duration(self):
+        """Calculate work duration in minutes"""
+        if not self.clock_out:
+            return 0
+        total_minutes = (self.clock_out - self.clock_in).total_seconds() / 60
+        return max(0, int(total_minutes - self.break_duration))
+    
+    @property
+    def is_active(self):
+        """Check if user is currently clocked in"""
+        return self.clock_out is None
+    
+    def __repr__(self):
+        return f'<TimesheetEntry {self.user.username} {self.date} {self.clock_in}-{self.clock_out}>'
+
+class UserStatus(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    is_working = db.Column(db.Boolean, default=False)
+    current_task = db.Column(db.String(200))
+    status_message = db.Column(db.String(100))  # Available, In Meeting, On Break, etc.
+    last_activity = db.Column(db.DateTime, default=func.now())
+    current_timesheet_id = db.Column(db.Integer, nullable=True)  # Reference to active timesheet
+    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+    
+    def __repr__(self):
+        return f'<UserStatus {self.user.username} working:{self.is_working}>'
