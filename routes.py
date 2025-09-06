@@ -561,3 +561,76 @@ def get_timesheet_entries():
         return jsonify({'success': True, 'entries': entries_data})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/timesheet/download', methods=['GET'])
+@login_required
+def download_timesheet():
+    """Download timesheet entries as CSV"""
+    try:
+        user_id = request.args.get('user_id', type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Permission check
+        if user_id and user_id != current_user.id and not current_user.is_admin:
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        # Build query
+        query = TimesheetEntry.query
+        
+        if user_id:
+            query = query.filter_by(user_id=user_id)
+        elif not current_user.is_admin:
+            query = query.filter_by(user_id=current_user.id)
+        
+        if start_date:
+            query = query.filter(TimesheetEntry.date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(TimesheetEntry.date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        entries = query.order_by(TimesheetEntry.date.desc(), TimesheetEntry.clock_in.desc()).all()
+        
+        # Generate CSV content
+        import csv
+        from io import StringIO
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'Date', 'Employee', 'Clock In', 'Clock Out', 'Duration (Hours)', 
+            'Break Duration (Minutes)', 'Location', 'Notes'
+        ])
+        
+        # Write data rows
+        for entry in entries:
+            writer.writerow([
+                entry.date.strftime('%Y-%m-%d'),
+                entry.user.username,
+                entry.clock_in.strftime('%H:%M:%S'),
+                entry.clock_out.strftime('%H:%M:%S') if entry.clock_out else 'Still Active',
+                f"{entry.duration:.2f}" if entry.duration else '0.00',
+                entry.break_duration or 0,
+                entry.location,
+                entry.notes or ''
+            ])
+        
+        csv_content = output.getvalue()
+        output.close()
+        
+        # Generate filename
+        if user_id and current_user.is_admin:
+            user = User.query.get(user_id)
+            filename = f"timesheet_{user.username}_{datetime.now().strftime('%Y%m%d')}.csv"
+        else:
+            filename = f"timesheet_{current_user.username}_{datetime.now().strftime('%Y%m%d')}.csv"
+        
+        from flask import Response
+        return Response(
+            csv_content,
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
