@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Team Master Calendar{% endblock %}
+
+{% block content %}
+<!-- Analytics Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-chart-line me-2"></i>
+                Analytics Dashboard
+            </h2>
+            <div class="d-flex gap-2">
+                <select id="timeRangeFilter" class="form-select" style="width: 160px;">
+                    <option value="7">Last 7 days</option>
+                    <option value="30" selected>Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+                <button class="btn btn-outline-primary" onclick="exportAnalyticsData()">
+                    <i class="fas fa-download me-1"></i>Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                    <div>
+                        <div class="small">Total Users</div>
+                        <div class="h4 mb-0" id="totalUsersMetric">{{ total_users }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-user-clock fa-2x"></i>
+                    </div>
+                    <div>
+                        <div class="small">Currently Active</div>
+                        <div class="h4 mb-0" id="activeUsersMetric">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                    <div>
+                        <div class="small">Total Hours</div>
+                        <div class="h4 mb-0" id="totalHoursMetric">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-calendar-week fa-2x"></i>
+                    </div>
+                    <div>
+                        <div class="small">This Week</div>
+                        <div class="h4 mb-0" id="weekHoursMetric">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-area me-2"></i>
+                    Work Hours Trend (Last 30 Days)
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="workHoursTrendChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Current Team Status
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusDistributionChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+    <div class="col-xl-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Team Productivity Metrics (Last 30 Days)
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="userProductivityChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Analytics Tables -->
+<div class="row">
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    Top Performers
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="topPerformersTable">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Total Hours</th>
+                                <th>Sessions</th>
+                                <th>Avg Session</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">
+                                    <div class="spinner-border spinner-border-sm me-2"></div>
+                                    Loading data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-trending-up me-2"></i>
+                    Productivity Insights
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="productivityInsights">
+                    <div class="text-center text-muted">
+                        <div class="spinner-border spinner-border-sm me-2"></div>
+                        Analyzing productivity patterns...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" style="background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div class="d-flex align-items-center justify-content-center h-100">
+        <div class="text-center text-white">
+            <div class="spinner-border mb-3"></div>
+            <div>Loading Analytics...</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+{% endblock %}

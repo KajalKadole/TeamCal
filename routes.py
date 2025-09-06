@@ -554,6 +554,214 @@ def get_public_team_status():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/analytics')
+@login_required
+def analytics():
+    """Admin analytics dashboard"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('calendar'))
+    
+    # Get basic stats for the template
+    total_users = User.query.count()
+    total_entries = TimesheetEntry.query.count()
+    
+    # Get users for filter dropdown
+    users = User.query.order_by(User.username).all()
+    
+    return render_template('analytics.html', 
+                         total_users=total_users,
+                         total_entries=total_entries,
+                         users=users)
+
+@app.route('/api/analytics/overview', methods=['GET'])
+@login_required
+def analytics_overview():
+    """Get overview analytics data"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        # Get time range filter
+        days = int(request.args.get('days', 30))
+        
+        # Basic counts
+        total_users = User.query.count()
+        total_entries = TimesheetEntry.query.count()
+        active_users = db.session.query(UserStatus).filter_by(is_working=True).count()
+        
+        # Date range for filtering
+        from datetime import datetime, timedelta
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Total hours worked (within selected time range)
+        total_hours_result = db.session.query(
+            db.func.sum(
+                db.func.extract('epoch', TimesheetEntry.clock_out - TimesheetEntry.clock_in) / 3600
+            ).label('total_hours')
+        ).filter(
+            TimesheetEntry.clock_out.isnot(None),
+            TimesheetEntry.clock_in >= start_date
+        ).scalar()
+        
+        total_hours = float(total_hours_result) if total_hours_result else 0
+        
+        # This week's hours
+        week_start = datetime.now() - timedelta(days=datetime.now().weekday())
+        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        week_hours_result = db.session.query(
+            db.func.sum(
+                db.func.extract('epoch', TimesheetEntry.clock_out - TimesheetEntry.clock_in) / 3600
+            ).label('week_hours')
+        ).filter(
+            TimesheetEntry.clock_out.isnot(None),
+            TimesheetEntry.clock_in >= week_start
+        ).scalar()
+        
+        week_hours = float(week_hours_result) if week_hours_result else 0
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'total_users': total_users,
+                'total_entries': total_entries,
+                'active_users': active_users,
+                'total_hours': round(total_hours, 1),
+                'week_hours': round(week_hours, 1)
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analytics/work-hours-trend', methods=['GET'])
+@login_required
+def analytics_work_hours_trend():
+    """Get work hours trend data for charts"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        # Get time range filter
+        days = int(request.args.get('days', 30))
+        
+        # Get date range based on filter
+        from datetime import datetime, timedelta
+        end_date = datetime.now().replace(hour=23, minute=59, second=59)
+        start_date = end_date - timedelta(days=days-1)
+        start_date = start_date.replace(hour=0, minute=0, second=0)
+        
+        # Query daily hours
+        daily_hours = db.session.query(
+            db.func.date(TimesheetEntry.clock_in).label('work_date'),
+            db.func.sum(
+                db.func.extract('epoch', TimesheetEntry.clock_out - TimesheetEntry.clock_in) / 3600
+            ).label('total_hours')
+        ).filter(
+            TimesheetEntry.clock_out.isnot(None),
+            TimesheetEntry.clock_in >= start_date,
+            TimesheetEntry.clock_in <= end_date
+        ).group_by(db.func.date(TimesheetEntry.clock_in)).all()
+        
+        # Create complete date range with 0 hours for missing days
+        date_range = []
+        current_date = start_date.date()
+        hours_dict = {row.work_date: float(row.total_hours) for row in daily_hours}
+        
+        for i in range(days):
+            date_str = current_date.strftime('%Y-%m-%d')
+            date_range.append({
+                'date': date_str,
+                'hours': round(hours_dict.get(current_date, 0), 1)
+            })
+            current_date += timedelta(days=1)
+        
+        return jsonify({'success': True, 'data': date_range})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analytics/user-productivity', methods=['GET'])
+@login_required 
+def analytics_user_productivity():
+    """Get user productivity metrics"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        # Get time range filter
+        days = int(request.args.get('days', 30))
+        
+        # Get productivity data per user (based on selected time range)
+        from datetime import datetime, timedelta
+        start_date = datetime.now() - timedelta(days=days)
+        
+        user_stats = db.session.query(
+            User.username,
+            db.func.count(TimesheetEntry.id).label('total_sessions'),
+            db.func.sum(
+                db.func.extract('epoch', TimesheetEntry.clock_out - TimesheetEntry.clock_in) / 3600
+            ).label('total_hours'),
+            db.func.avg(
+                db.func.extract('epoch', TimesheetEntry.clock_out - TimesheetEntry.clock_in) / 3600
+            ).label('avg_session_hours')
+        ).join(TimesheetEntry).filter(
+            TimesheetEntry.clock_out.isnot(None),
+            TimesheetEntry.clock_in >= start_date
+        ).group_by(User.id, User.username).all()
+        
+        productivity_data = []
+        for stat in user_stats:
+            productivity_data.append({
+                'username': stat.username,
+                'total_sessions': stat.total_sessions,
+                'total_hours': round(float(stat.total_hours), 1),
+                'avg_session_hours': round(float(stat.avg_session_hours), 2)
+            })
+        
+        return jsonify({'success': True, 'data': productivity_data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/analytics/status-distribution', methods=['GET'])
+@login_required
+def analytics_status_distribution():
+    """Get current status distribution across team"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    
+    try:
+        # Get current status distribution
+        status_counts = db.session.query(
+            UserStatus.status_message,
+            db.func.count(UserStatus.id).label('count')
+        ).join(User).filter(
+            UserStatus.is_working == True
+        ).group_by(UserStatus.status_message).all()
+        
+        # Get offline users
+        total_users = User.query.count()
+        online_users = db.session.query(UserStatus).filter_by(is_working=True).count()
+        offline_users = total_users - online_users
+        
+        distribution_data = []
+        for status in status_counts:
+            status_name = status.status_message or 'Available'
+            distribution_data.append({
+                'status': status_name,
+                'count': status.count
+            })
+        
+        if offline_users > 0:
+            distribution_data.append({
+                'status': 'Offline',
+                'count': offline_users
+            })
+        
+        return jsonify({'success': True, 'data': distribution_data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/timesheet/entries', methods=['GET'])
 @login_required
 def get_timesheet_entries():
