@@ -949,20 +949,31 @@ def download_timesheet():
         
         # Write header
         writer.writerow([
-            'Date', 'Employee', 'Clock In', 'Clock Out', 'Duration (Hours)', 
-            'Break Duration (Minutes)', 'Location', 'Notes'
+            'Date (YYYY-MM-DD)', 'Day of Week', 'Employee', 'Clock In Time', 'Clock Out Time', 
+            'Work Duration (Hours)', 'Break Duration (Minutes)', 'Total Time (Hours)', 'Location', 'Status', 'Notes'
         ])
         
         # Write data rows
         for entry in entries:
+            # Calculate total time including breaks
+            work_hours = round(entry.duration / 60, 2) if entry.duration else 0.00
+            break_minutes = entry.break_duration or 0
+            total_hours = round((entry.duration + break_minutes) / 60, 2) if entry.duration else 0.00
+            
+            # Status determination
+            status = 'Active' if entry.is_active else 'Completed'
+            
             writer.writerow([
-                entry.date.strftime('%Y-%m-%d'),
+                entry.date.strftime('%Y-%m-%d'),  # Date in YYYY-MM-DD format
+                entry.date.strftime('%A'),       # Day of week (Monday, Tuesday, etc.)
                 entry.user.username,
-                entry.clock_in.strftime('%H:%M:%S'),
-                entry.clock_out.strftime('%H:%M:%S') if entry.clock_out else 'Still Active',
-                f"{entry.duration:.2f}" if entry.duration else '0.00',
-                entry.break_duration or 0,
-                entry.location,
+                entry.clock_in.strftime('%I:%M:%S %p'),  # 12-hour format with AM/PM
+                entry.clock_out.strftime('%I:%M:%S %p') if entry.clock_out else 'Still Active',
+                f"{work_hours:.2f}",
+                break_minutes,
+                f"{total_hours:.2f}",
+                entry.location or 'Office',
+                status,
                 entry.notes or ''
             ])
         
