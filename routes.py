@@ -419,6 +419,108 @@ def clock_out():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/timesheet/start-break', methods=['POST'])
+@login_required
+def start_break():
+    """Start a break for the current user"""
+    try:
+        # Check if user is currently clocked in
+        active_entry = TimesheetEntry.query.filter_by(
+            user_id=current_user.id,
+            clock_out=None
+        ).first()
+        
+        if not active_entry:
+            return jsonify({'success': False, 'error': 'You must be clocked in to start a break'}), 400
+        
+        # Check if there's already an active break
+        active_break = BreakEntry.query.filter_by(
+            user_id=current_user.id,
+            timesheet_entry_id=active_entry.id,
+            break_end=None
+        ).first()
+        
+        if active_break:
+            return jsonify({'success': False, 'error': 'Break is already in progress'}), 400
+        
+        # Create new break entry
+        break_entry = BreakEntry(
+            user_id=current_user.id,
+            timesheet_entry_id=active_entry.id,
+            break_start=datetime.now(),
+            break_type=request.json.get('break_type', 'Break')
+        )
+        
+        db.session.add(break_entry)
+        
+        # Update user status to "On Break"
+        user_status = UserStatus.query.filter_by(user_id=current_user.id).first()
+        if user_status:
+            user_status.status_message = 'On Break'
+            user_status.current_task = f"On {break_entry.break_type}"
+            user_status.updated_at = datetime.now()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Break started successfully',
+            'break_id': break_entry.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/timesheet/end-break', methods=['POST'])
+@login_required
+def end_break():
+    """End the current break for the current user"""
+    try:
+        # Find active break
+        active_break = BreakEntry.query.filter_by(
+            user_id=current_user.id,
+            break_end=None
+        ).first()
+        
+        if not active_break:
+            return jsonify({'success': False, 'error': 'No active break found'}), 400
+        
+        # End the break
+        active_break.break_end = datetime.now()
+        
+        # Update the timesheet entry's break duration
+        timesheet_entry = active_break.timesheet_entry
+        total_break_duration = db.session.query(
+            db.func.sum(
+                db.func.extract('epoch', BreakEntry.break_end - BreakEntry.break_start) / 60
+            )
+        ).filter(
+            BreakEntry.timesheet_entry_id == timesheet_entry.id,
+            BreakEntry.break_end.isnot(None)
+        ).scalar() or 0
+        
+        timesheet_entry.break_duration = int(total_break_duration) + active_break.duration
+        
+        # Update user status back to Available
+        user_status = UserStatus.query.filter_by(user_id=current_user.id).first()
+        if user_status:
+            user_status.status_message = 'Available'
+            user_status.current_task = request.json.get('task', '')
+            user_status.updated_at = datetime.now()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Break ended successfully',
+            'break_duration': active_break.duration
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/timesheet/status', methods=['GET'])
 @login_required
 def get_timesheet_status():

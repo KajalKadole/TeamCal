@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('clockInBtn').addEventListener('click', clockIn);
     document.getElementById('clockOutBtn').addEventListener('click', showClockOutModal);
     document.getElementById('updateStatusBtn').addEventListener('click', updateStatus);
+    document.getElementById('breakBtn').addEventListener('click', toggleBreak);
     
     // Auto-refresh status every minute
     setInterval(loadTimesheetStatus, 60000);
@@ -411,14 +412,67 @@ function downloadTimesheet() {
     window.open(`/api/timesheet/download?${params}`, '_blank');
 }
 
+// Break functionality
+function toggleBreak() {
+    if (!currentStatus || !currentStatus.is_clocked_in) {
+        showAlert('You must be clocked in to manage breaks', 'warning');
+        return;
+    }
+    
+    const isOnBreak = currentStatus.is_on_break;
+    const endpoint = isOnBreak ? '/api/timesheet/end-break' : '/api/timesheet/start-break';
+    const breakType = document.getElementById('statusSelect')?.value || 'Break';
+    
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            break_type: isOnBreak ? undefined : breakType,
+            task: document.getElementById('currentTaskInput')?.value || ''
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            loadTimesheetStatus(); // Refresh status
+            loadTimesheetEntries(); // Refresh entries
+        } else {
+            showAlert('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Failed to manage break', 'danger');
+    });
+}
+
 function downloadCSV(entries) {
-    const headers = ['Date', 'Clock In', 'Clock Out', 'Duration (Hours)', 'Location', 'Notes'];
+    const headers = ['Date (YYYY-MM-DD)', 'Day of Week', 'Clock In Time', 'Clock Out Time', 'Work Duration (Hours)', 'Break Duration (Minutes)', 'Total Time (Hours)', 'Location', 'Status', 'Notes'];
     const csvContent = [
         headers.join(','),
-        ...entries.map(entry => [
-            entry.date,
-            entry.clock_in ? new Date(entry.clock_in).toLocaleString() : '',
-            entry.clock_out ? new Date(entry.clock_out).toLocaleString() : '',
+        ...entries.map(entry => {
+            const entryDate = new Date(entry.date);
+            const clockInDate = entry.clock_in ? new Date(entry.clock_in) : null;
+            const clockOutDate = entry.clock_out ? new Date(entry.clock_out) : null;
+            
+            return [
+                entryDate.toISOString().split('T')[0], // Date in YYYY-MM-DD format
+                entryDate.toLocaleDateString('en-US', { weekday: 'long' }), // Day of week
+                clockInDate ? clockInDate.toLocaleTimeString('en-US', { 
+                    hour12: true, 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                }) : '',
+                clockOutDate ? clockOutDate.toLocaleTimeString('en-US', { 
+                    hour12: true, 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit'
+                }) : 'Still Active',
             entry.duration ? (entry.duration / 60).toFixed(2) : '',
             `"${entry.location || ''}"`,
             `"${(entry.notes || '').replace(/"/g, '""')}"`

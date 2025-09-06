@@ -89,6 +89,32 @@ class TimesheetEntry(db.Model):
     def __repr__(self):
         return f'<TimesheetEntry {self.user.username} {self.date} {self.clock_in}-{self.clock_out}>'
 
+class BreakEntry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    timesheet_entry_id = db.Column(db.Integer, db.ForeignKey('timesheet_entry.id'), nullable=False)
+    break_start = db.Column(db.DateTime, nullable=False)
+    break_end = db.Column(db.DateTime, nullable=True)  # Null when break is active
+    break_type = db.Column(db.String(50), default='Break')  # Break, Lunch, etc.
+    created_at = db.Column(db.DateTime, default=func.now())
+    updated_at = db.Column(db.DateTime, default=func.now(), onupdate=func.now())
+    
+    @property
+    def duration(self):
+        """Calculate break duration in minutes"""
+        if not self.break_end:
+            # If break is active, calculate from start to now
+            return int((datetime.now() - self.break_start).total_seconds() / 60)
+        return int((self.break_end - self.break_start).total_seconds() / 60)
+    
+    @property
+    def is_active(self):
+        """Check if break is currently active"""
+        return self.break_end is None
+    
+    def __repr__(self):
+        return f'<BreakEntry {self.user.username} {self.break_start}-{self.break_end}>'
+
 class UserStatus(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
