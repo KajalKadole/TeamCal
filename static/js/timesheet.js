@@ -82,6 +82,13 @@ function updateUI() {
         // Update location
         document.getElementById('currentLocation').textContent = currentStatus.location || 'Office';
         
+        // Update break duration display
+        const breakMinutes = currentStatus.total_break_duration || 0;
+        const breakHours = Math.floor(breakMinutes / 60);
+        const breakMins = breakMinutes % 60;
+        document.getElementById('breakDurationDisplay').textContent = 
+            `${breakHours.toString().padStart(2, '0')}:${breakMins.toString().padStart(2, '0')}`;
+        
         // Update status and task inputs
         document.getElementById('statusSelect').value = currentStatus.status_message || 'Available';
         document.getElementById('currentTaskInput').value = currentStatus.current_task || '';
@@ -114,6 +121,15 @@ function startDurationCounter() {
             
             document.getElementById('currentDuration').textContent = 
                 `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                
+            // Update break duration display if it exists
+            if (document.getElementById('breakDurationDisplay')) {
+                const breakMinutes = currentStatus.total_break_duration || 0;
+                const breakHours = Math.floor(breakMinutes / 60);
+                const breakMins = breakMinutes % 60;
+                document.getElementById('breakDurationDisplay').textContent = 
+                    `${breakHours.toString().padStart(2, '0')}:${breakMins.toString().padStart(2, '0')}`;
+            }
         }
     }, 1000);
 }
