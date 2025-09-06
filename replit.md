@@ -2,6 +2,17 @@
 
 Team Master Calendar is a Flask-based web application designed to streamline team scheduling and availability management. The system allows employees to set their availability, mark busy periods, request leave days, and enables administrators to view a consolidated master calendar of all team members. Built with a focus on simplicity and efficiency, it provides an intuitive interface for managing team schedules and coordinating work assignments.
 
+# Recent Changes
+
+## September 6, 2025 - Fixed JavaScript Syntax Errors
+- **Issue**: Console errors showing "Uncaught SyntaxError: Unexpected token ')'" preventing clock in functionality
+- **Root Cause**: Boolean values in Jinja2 templates were not being properly converted to JavaScript
+- **Files Fixed**:
+  - `templates/timesheet.html`: Changed `{{ 'true' if current_user.is_admin else 'false' }}` to `{{ current_user.is_admin|tojson|safe }}`
+  - `templates/calendar.html`: Applied same fix for consistent boolean handling
+- **Solution**: Used Jinja2's `tojson` filter with `safe` to properly serialize Python boolean values to JavaScript
+- **Impact**: Clock in/out functionality now works correctly, no more JavaScript syntax errors
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
