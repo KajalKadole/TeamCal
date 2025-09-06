@@ -391,9 +391,30 @@ def clock_out():
         if not entry:
             return jsonify({'success': False, 'error': 'Not clocked in'}), 400
         
+        # End any active breaks first
+        active_breaks = BreakEntry.query.filter_by(
+            user_id=current_user.id,
+            timesheet_entry_id=entry.id,
+            break_end=None
+        ).all()
+        
+        clock_out_time = datetime.now()
+        for break_entry in active_breaks:
+            break_entry.break_end = clock_out_time
+        
+        # Calculate total break duration from BreakEntry records
+        total_break_duration = db.session.query(
+            db.func.sum(
+                db.func.extract('epoch', BreakEntry.break_end - BreakEntry.break_start) / 60
+            )
+        ).filter(
+            BreakEntry.timesheet_entry_id == entry.id,
+            BreakEntry.break_end.isnot(None)
+        ).scalar() or 0
+        
         # Update timesheet entry
-        entry.clock_out = datetime.now()
-        entry.break_duration = data.get('break_duration', 0)
+        entry.clock_out = clock_out_time
+        entry.break_duration = int(total_break_duration)  # Server-authoritative break duration
         if data.get('notes'):
             entry.notes = data.get('notes')
         
@@ -464,7 +485,7 @@ def start_break():
         
         return jsonify({
             'success': True, 
-            'message': 'Break started successfully',
+            'message': 'Break started successfully. Change your status from "On Break" to end the break.',
             'break_id': break_entry.id
         })
         
@@ -567,6 +588,43 @@ def update_user_status():
             user_status = UserStatus(user_id=current_user.id)
             db.session.add(user_status)
         
+        # Check if user is changing away from "On Break" status
+        break_ended = False
+        if (user_status.status_message == 'On Break' and 
+            'status_message' in data and 
+            data['status_message'] != 'On Break'):
+            
+            # Find active timesheet entry first
+            active_timesheet = TimesheetEntry.query.filter_by(
+                user_id=current_user.id,
+                clock_out=None
+            ).first()
+            
+            if active_timesheet:
+                # End any active breaks for this timesheet entry
+                active_breaks = BreakEntry.query.filter_by(
+                    user_id=current_user.id,
+                    timesheet_entry_id=active_timesheet.id,
+                    break_end=None
+                ).all()
+                
+                for break_entry in active_breaks:
+                    break_entry.break_end = datetime.now()
+                    break_ended = True
+                
+                if active_breaks:
+                    # Recalculate total break duration for the timesheet entry
+                    total_break_duration = db.session.query(
+                        db.func.sum(
+                            db.func.extract('epoch', BreakEntry.break_end - BreakEntry.break_start) / 60
+                        )
+                    ).filter(
+                        BreakEntry.timesheet_entry_id == active_timesheet.id,
+                        BreakEntry.break_end.isnot(None)
+                    ).scalar() or 0
+                    
+                    active_timesheet.break_duration = int(total_break_duration)
+        
         if 'status_message' in data:
             user_status.status_message = data['status_message']
         if 'current_task' in data:
@@ -576,7 +634,12 @@ def update_user_status():
         
         db.session.commit()
         
-        return jsonify({'success': True})
+        message = 'Break ended and status updated successfully' if break_ended else 'Status updated successfully'
+        return jsonify({
+            'success': True, 
+            'message': message,
+            'break_ended': break_ended
+        })
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

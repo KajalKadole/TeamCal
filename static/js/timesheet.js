@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('clockInBtn').addEventListener('click', clockIn);
     document.getElementById('clockOutBtn').addEventListener('click', showClockOutModal);
     document.getElementById('updateStatusBtn').addEventListener('click', updateStatus);
-    document.getElementById('breakBtn').addEventListener('click', toggleBreak);
+    document.getElementById('breakBtn').addEventListener('click', startBreak);
     
     // Auto-refresh status every minute
     setInterval(loadTimesheetStatus, 60000);
@@ -245,7 +245,10 @@ function updateStatus() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showAlert('Status updated!', 'success');
+            showAlert(data.message || 'Status updated!', 'success');
+            // Immediately refresh status and entries to show changes
+            loadTimesheetStatus();
+            loadTimesheetEntries();
             if (window.currentUser && window.currentUser.is_admin) {
                 loadTeamStatus(); // Refresh team status if admin
             }
@@ -428,31 +431,38 @@ function downloadTimesheet() {
     window.open(`/api/timesheet/download?${params}`, '_blank');
 }
 
-// Break functionality
-function toggleBreak() {
+// Break functionality - only starts breaks, ending is handled by status changes
+function startBreak() {
     if (!currentStatus || !currentStatus.is_clocked_in) {
-        showAlert('You must be clocked in to manage breaks', 'warning');
+        showAlert('You must be clocked in to start a break', 'warning');
         return;
     }
     
-    const isOnBreak = currentStatus.is_on_break;
-    const endpoint = isOnBreak ? '/api/timesheet/end-break' : '/api/timesheet/start-break';
+    if (currentStatus.is_on_break) {
+        showAlert('You are already on break. Change your status to "Available" to end the break.', 'info');
+        return;
+    }
+    
     const breakType = document.getElementById('statusSelect')?.value || 'Break';
     
-    fetch(endpoint, {
+    fetch('/api/timesheet/start-break', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            break_type: isOnBreak ? undefined : breakType,
-            task: document.getElementById('currentTaskInput')?.value || ''
+            break_type: breakType
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             showAlert(data.message, 'success');
+            // Set status to "On Break" in the UI
+            const statusSelect = document.getElementById('statusSelect');
+            if (statusSelect) {
+                statusSelect.value = 'On Break';
+            }
             loadTimesheetStatus(); // Refresh status
             loadTimesheetEntries(); // Refresh entries
         } else {
@@ -461,7 +471,7 @@ function toggleBreak() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('Failed to manage break', 'danger');
+        showAlert('Failed to start break', 'danger');
     });
 }
 
