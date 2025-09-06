@@ -64,7 +64,12 @@ function updateUI() {
     const clockedInView = document.getElementById('clockedInView');
     const clockedOutView = document.getElementById('clockedOutView');
     
-    if (currentStatus.is_clocked_in) {
+    if (!clockedInView || !clockedOutView) {
+        console.error('Required timesheet elements not found');
+        return;
+    }
+    
+    if (currentStatus && currentStatus.is_clocked_in) {
         clockedInView.style.display = 'block';
         clockedOutView.style.display = 'none';
         
@@ -368,13 +373,15 @@ function calculateStats(entries) {
     
     entries.forEach(entry => {
         const entryDate = new Date(entry.date);
+        // Ensure duration is a valid number
+        const duration = parseFloat(entry.duration) || 0;
         
         if (entryDate.toDateString() === today) {
-            todayMinutes += entry.duration;
+            todayMinutes += duration;
         }
         
         if (entryDate >= thisWeek) {
-            weekMinutes += entry.duration;
+            weekMinutes += duration;
         }
     });
     
