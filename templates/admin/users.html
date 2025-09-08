@@ -2,6 +2,10 @@
 
 {% block title %}User Management - Ziqsy Team Calendar{% endblock %}
 
+{% block head %}
+<meta name="csrf-token" content="{{ csrf_token() }}">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
@@ -172,6 +176,34 @@
                         <select class="form-select" id="editDepartmentSelect" required>
                             <option value="">No Department</option>
                         </select>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="showCreateDepartmentForm()">
+                                <i class="fas fa-plus me-1"></i>Create New Department
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Inline department creation form (initially hidden) -->
+                    <div id="newDepartmentForm" style="display: none;" class="mb-3">
+                        <div class="card bg-secondary">
+                            <div class="card-body">
+                                <h6 class="card-title">Create New Department</h6>
+                                <div class="mb-2">
+                                    <input type="text" class="form-control form-control-sm" id="newDepartmentName" placeholder="Department Name">
+                                </div>
+                                <div class="mb-2">
+                                    <textarea class="form-control form-control-sm" id="newDepartmentDescription" rows="2" placeholder="Description (optional)"></textarea>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-success btn-sm" onclick="createNewDepartment()">
+                                        <i class="fas fa-save me-1"></i>Create
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="hideCreateDepartmentForm()">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -312,6 +344,74 @@ function saveDepartmentChange() {
         console.error('Error updating department:', error);
         showAlert('Failed to update department', 'danger');
     });
+}
+
+function showCreateDepartmentForm() {
+    document.getElementById('newDepartmentForm').style.display = 'block';
+    document.getElementById('newDepartmentName').focus();
+}
+
+function hideCreateDepartmentForm() {
+    document.getElementById('newDepartmentForm').style.display = 'none';
+    document.getElementById('newDepartmentName').value = '';
+    document.getElementById('newDepartmentDescription').value = '';
+}
+
+function createNewDepartment() {
+    const name = document.getElementById('newDepartmentName').value.trim();
+    if (!name) {
+        showAlert('Department name is required', 'danger');
+        return;
+    }
+    
+    fetch('/admin/departments/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new URLSearchParams({
+            'csrf_token': document.querySelector('meta[name=csrf-token]').getAttribute('content') || '',
+            'name': name,
+            'description': document.getElementById('newDepartmentDescription').value.trim()
+        })
+    })
+    .then(response => response.text())
+    .then(data => {
+        if (data.includes('success') || data.includes('created')) {
+            showAlert(`Department "${name}" created successfully!`, 'success');
+            hideCreateDepartmentForm();
+            // Reload department options
+            loadDepartmentOptions();
+        } else {
+            showAlert('Failed to create department', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating department:', error);
+        showAlert('Failed to create department', 'danger');
+    });
+}
+
+function loadDepartmentOptions() {
+    fetch('/api/departments')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('editDepartmentSelect');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">No Department</option>';
+            
+            data.departments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.id;
+                option.textContent = dept.name;
+                if (dept.id.toString() === currentValue) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading departments:', error));
 }
 </script>
 {% endblock %}
