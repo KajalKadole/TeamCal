@@ -247,6 +247,271 @@ function addEvent() {
     });
 }
 
+// Multi-Day Availability Functions
+function showMultiDayModal() {
+    const modal = new bootstrap.Modal(document.getElementById('multiDayModal'));
+    
+    // Set default dates (today and 2 weeks from today)
+    const today = new Date();
+    const twoWeeksFromToday = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+    
+    document.getElementById('multiStartDate').value = today.toISOString().split('T')[0];
+    document.getElementById('multiEndDate').value = twoWeeksFromToday.toISOString().split('T')[0];
+    
+    // Clear previous preview
+    clearPreview();
+    
+    modal.show();
+}
+
+function generatePreview() {
+    const startDate = document.getElementById('multiStartDate').value;
+    const endDate = document.getElementById('multiEndDate').value;
+    const startTime = getTimeFrom12HourMulti('multiStart');
+    const endTime = getTimeFrom12HourMulti('multiEnd');
+    
+    if (!startDate || !endDate) {
+        showAlert('Please select both start and end dates.', 'warning');
+        return;
+    }
+    
+    if (!startTime || !endTime) {
+        showAlert('Please select both start and end times.', 'warning');
+        return;
+    }
+    
+    if (startTime >= endTime) {
+        showAlert('End time must be after start time.', 'warning');
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        showAlert('End date must be after start date.', 'warning');
+        return;
+    }
+    
+    // Get selected days
+    const selectedDays = [];
+    ['multiMonday', 'multiTuesday', 'multiWednesday', 'multiThursday', 'multiFriday', 'multiSaturday', 'multiSunday'].forEach(id => {
+        if (document.getElementById(id).checked) {
+            selectedDays.push(parseInt(document.getElementById(id).value));
+        }
+    });
+    
+    if (selectedDays.length === 0) {
+        showAlert('Please select at least one day of the week.', 'warning');
+        return;
+    }
+    
+    // Generate timeline
+    const previewContainer = document.getElementById('timelinePreview');
+    const dates = generateDateRange(startDate, endDate, selectedDays);
+    
+    if (dates.length === 0) {
+        previewContainer.innerHTML = `
+            <div class="timeline-empty-state">
+                <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                <p>No dates match your selected criteria</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const timelineHTML = `
+        <div class="timeline-stats">
+            <div class="timeline-stat">
+                <span class="timeline-stat-number">${dates.length}</span>
+                <div class="timeline-stat-label">Total Days</div>
+            </div>
+            <div class="timeline-stat">
+                <span class="timeline-stat-number">${formatTime12Hour(startTime)} - ${formatTime12Hour(endTime)}</span>
+                <div class="timeline-stat-label">Time Range</div>
+            </div>
+            <div class="timeline-stat">
+                <span class="timeline-stat-number">${calculateTotalHours(startTime, endTime, dates.length)} hrs</span>
+                <div class="timeline-stat-label">Total Hours</div>
+            </div>
+        </div>
+        <div class="mt-3">
+            ${dates.map(dateObj => `
+                <div class="timeline-day" data-date="${dateObj.date}">
+                    <div class="timeline-day-info">
+                        <div class="timeline-day-date">${formatDateDisplay(dateObj.date)}</div>
+                        <div class="timeline-day-time">${formatTime12Hour(startTime)} - ${formatTime12Hour(endTime)}</div>
+                    </div>
+                    <div class="timeline-day-weekday">${dateObj.weekday}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    previewContainer.innerHTML = timelineHTML;
+}
+
+function clearPreview() {
+    const previewContainer = document.getElementById('timelinePreview');
+    previewContainer.innerHTML = `
+        <div class="text-center text-muted p-4">
+            <i class="fas fa-calendar-plus fa-2x mb-2"></i>
+            <p>Select your date range and click "Generate Preview" to see the timeline</p>
+        </div>
+    `;
+}
+
+function createMultiDayAvailability() {
+    const startDate = document.getElementById('multiStartDate').value;
+    const endDate = document.getElementById('multiEndDate').value;
+    const startTime = getTimeFrom12HourMulti('multiStart');
+    const endTime = getTimeFrom12HourMulti('multiEnd');
+    
+    if (!startDate || !endDate || !startTime || !endTime) {
+        showAlert('Please fill in all required fields.', 'warning');
+        return;
+    }
+    
+    if (startTime >= endTime) {
+        showAlert('End time must be after start time.', 'warning');
+        return;
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+        showAlert('End date must be after start date.', 'warning');
+        return;
+    }
+    
+    // Get selected days
+    const selectedDays = [];
+    ['multiMonday', 'multiTuesday', 'multiWednesday', 'multiThursday', 'multiFriday', 'multiSaturday', 'multiSunday'].forEach(id => {
+        if (document.getElementById(id).checked) {
+            selectedDays.push(parseInt(document.getElementById(id).value));
+        }
+    });
+    
+    if (selectedDays.length === 0) {
+        showAlert('Please select at least one day of the week.', 'warning');
+        return;
+    }
+    
+    // Generate date range
+    const dates = generateDateRange(startDate, endDate, selectedDays);
+    
+    if (dates.length === 0) {
+        showAlert('No dates match your selected criteria.', 'warning');
+        return;
+    }
+    
+    // Prepare data for submission
+    const eventData = {
+        dates: dates.map(d => d.date),
+        start_time: startTime,
+        end_time: endTime,
+        type: 'multi_availability'
+    };
+    
+    // Submit to backend
+    fetch('/api/multi-availability', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`Successfully created availability for ${dates.length} days!`, 'success');
+            
+            // Refresh calendar
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    allEvents = events;
+                    updateTeamMemberCounts(events);
+                    calendar.refetchEvents();
+                });
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('multiDayModal')).hide();
+        } else {
+            showAlert(`Error: ${data.error}`, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('An error occurred while creating multi-day availability.', 'danger');
+    });
+}
+
+// Helper functions for multi-day availability
+function generateDateRange(startDateStr, endDateStr, selectedDays) {
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+    const dates = [];
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    const current = new Date(startDate);
+    while (current <= endDate) {
+        const dayOfWeek = current.getDay();
+        if (selectedDays.includes(dayOfWeek)) {
+            dates.push({
+                date: current.toISOString().split('T')[0],
+                weekday: weekdays[dayOfWeek]
+            });
+        }
+        current.setDate(current.getDate() + 1);
+    }
+    
+    return dates;
+}
+
+function getTimeFrom12HourMulti(prefix) {
+    const hour = parseInt(document.getElementById(`${prefix}Hour`).value);
+    const minute = document.getElementById(`${prefix}Minute`).value;
+    const ampm = document.getElementById(`${prefix}AmPm`).value;
+    
+    if (!hour || !minute || !ampm) return null;
+    
+    let hour24 = hour;
+    if (ampm === 'PM' && hour !== 12) {
+        hour24 += 12;
+    } else if (ampm === 'AM' && hour === 12) {
+        hour24 = 0;
+    }
+    
+    return `${hour24.toString().padStart(2, '0')}:${minute}`;
+}
+
+function formatTime12Hour(time24) {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minutes} ${ampm}`;
+}
+
+function formatDateDisplay(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+function calculateTotalHours(startTime, endTime, numDays) {
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+    
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+    
+    const durationMinutes = endTotalMinutes - startTotalMinutes;
+    const hoursPerDay = durationMinutes / 60;
+    
+    return (hoursPerDay * numDays).toFixed(1);
+}
+
 function showEventDetails(event) {
     selectedEvent = event;
     const modal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
