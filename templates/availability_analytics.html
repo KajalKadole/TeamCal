@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Availability Analytics{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1><i class="fas fa-chart-bar me-2"></i>Availability Analytics</h1>
+            <p class="text-muted">Analyze availability patterns and team scheduling data</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter Options</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        {% if current_user.is_admin %}
+                        <div class="col-md-2">
+                            <label class="form-label">User</label>
+                            <select id="userSelect" class="form-select">
+                                <option value="">All Users</option>
+                                <!-- Populated by JavaScript -->
+                            </select>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-2">
+                            <label class="form-label">From Date</label>
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">To Date</label>
+                            <input type="date" id="endDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Quick Select</label>
+                            <select id="quickDateRange" class="form-select">
+                                <option value="current_month">Current Month</option>
+                                <option value="last_month">Last Month</option>
+                                <option value="current_quarter">Current Quarter</option>
+                                <option value="last_quarter">Last Quarter</option>
+                                <option value="current_year">Current Year</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button id="loadAnalyticsBtn" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-line me-1"></i>Load Analytics
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Analytics Summary -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Summary Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-2">
+                            <h3 id="totalAvailabilityHours" class="text-success mb-0">0</h3>
+                            <small>Availability Hours</small>
+                        </div>
+                        <div class="col-md-2">
+                            <h3 id="totalBusyHours" class="text-warning mb-0">0</h3>
+                            <small>Busy Hours</small>
+                        </div>
+                        <div class="col-md-2">
+                            <h3 id="totalLeaveDays" class="text-danger mb-0">0</h3>
+                            <small>Leave Days</small>
+                        </div>
+                        <div class="col-md-2">
+                            <h3 id="totalScheduledDays" class="text-info mb-0">0</h3>
+                            <small>Scheduled Days</small>
+                        </div>
+                        <div class="col-md-2">
+                            <h3 id="availabilityRate" class="text-primary mb-0">0%</h3>
+                            <small>Availability Rate</small>
+                        </div>
+                        <div class="col-md-2">
+                            <button id="exportDataBtn" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-download me-1"></i>Export CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Availability Data Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Availability Schedule</h5>
+                    <div>
+                        <button id="refreshDataBtn" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="fas fa-refresh me-1"></i>Refresh
+                        </button>
+                        <span id="dataCount" class="badge bg-secondary">0 entries</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="availabilityTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="availabilityTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        <div class="spinner-border spinner-border-sm me-2"></div>
+                                        Loading availability data...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/availability_analytics.js') }}"></script>
+{% endblock %}

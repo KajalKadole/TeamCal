@@ -1087,6 +1087,155 @@ def get_timesheet_entries():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/availability/analytics')
+@login_required
+def availability_analytics():
+    """Get availability analytics data from calendar"""
+    try:
+        user_id = request.args.get('user_id')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Build query for availability slots
+        query = AvailabilitySlot.query
+        
+        if user_id and current_user.is_admin:
+            query = query.filter(AvailabilitySlot.user_id == user_id)
+        elif not current_user.is_admin:
+            query = query.filter(AvailabilitySlot.user_id == current_user.id)
+        
+        if start_date:
+            query = query.filter(AvailabilitySlot.date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            query = query.filter(AvailabilitySlot.date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        availability_slots = query.order_by(AvailabilitySlot.date.desc()).all()
+        
+        # Build query for busy slots
+        busy_query = BusySlot.query
+        if user_id and current_user.is_admin:
+            busy_query = busy_query.filter(BusySlot.user_id == user_id)
+        elif not current_user.is_admin:
+            busy_query = busy_query.filter(BusySlot.user_id == current_user.id)
+        
+        if start_date:
+            busy_query = busy_query.filter(BusySlot.date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            busy_query = busy_query.filter(BusySlot.date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        busy_slots = busy_query.order_by(BusySlot.date.desc()).all()
+        
+        # Build query for leave days
+        leave_query = LeaveDay.query
+        if user_id and current_user.is_admin:
+            leave_query = leave_query.filter(LeaveDay.user_id == user_id)
+        elif not current_user.is_admin:
+            leave_query = leave_query.filter(LeaveDay.user_id == current_user.id)
+        
+        if start_date:
+            leave_query = leave_query.filter(LeaveDay.date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+        if end_date:
+            leave_query = leave_query.filter(LeaveDay.date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+        
+        leave_days = leave_query.order_by(LeaveDay.date.desc()).all()
+        
+        # Format availability data
+        availability_data = []
+        for slot in availability_slots:
+            # Convert UTC times to user's timezone for display
+            user_start_time = convert_utc_to_user_timezone(slot.start_time, current_user.timezone) if slot.start_time else None
+            user_end_time = convert_utc_to_user_timezone(slot.end_time, current_user.timezone) if slot.end_time else None
+            
+            availability_data.append({
+                'id': slot.id,
+                'type': 'availability',
+                'user_id': slot.user_id,
+                'username': slot.user.username,
+                'date': slot.date.isoformat(),
+                'start_time': user_start_time.strftime('%H:%M') if user_start_time else None,
+                'end_time': user_end_time.strftime('%H:%M') if user_end_time else None,
+                'status': 'Available',
+                'notes': slot.notes
+            })
+        
+        # Format busy data
+        for slot in busy_slots:
+            user_start_time = convert_utc_to_user_timezone(slot.start_time, current_user.timezone) if slot.start_time else None
+            user_end_time = convert_utc_to_user_timezone(slot.end_time, current_user.timezone) if slot.end_time else None
+            
+            availability_data.append({
+                'id': slot.id,
+                'type': 'busy',
+                'user_id': slot.user_id,
+                'username': slot.user.username,
+                'date': slot.date.isoformat(),
+                'start_time': user_start_time.strftime('%H:%M') if user_start_time else None,
+                'end_time': user_end_time.strftime('%H:%M') if user_end_time else None,
+                'status': 'Busy',
+                'notes': slot.notes
+            })
+        
+        # Format leave data
+        for leave in leave_days:
+            availability_data.append({
+                'id': leave.id,
+                'type': 'leave',
+                'user_id': leave.user_id,
+                'username': leave.user.username,
+                'date': leave.date.isoformat(),
+                'start_time': 'All Day',
+                'end_time': 'All Day',
+                'status': 'Leave',
+                'notes': leave.reason
+            })
+        
+        # Sort by date
+        availability_data.sort(key=lambda x: x['date'], reverse=True)
+        
+        # Calculate analytics
+        total_availability_hours = sum([
+            (slot.end_time - slot.start_time).total_seconds() / 3600 
+            for slot in availability_slots 
+            if slot.start_time and slot.end_time
+        ])
+        
+        total_busy_hours = sum([
+            (slot.end_time - slot.start_time).total_seconds() / 3600 
+            for slot in busy_slots 
+            if slot.start_time and slot.end_time
+        ])
+        
+        total_leave_days = len(leave_days)
+        
+        # Get unique dates for availability rate calculation
+        availability_dates = set([slot.date for slot in availability_slots])
+        busy_dates = set([slot.date for slot in busy_slots])
+        leave_dates = set([leave.date for leave in leave_days])
+        all_dates = availability_dates.union(busy_dates).union(leave_dates)
+        
+        analytics = {
+            'total_availability_hours': round(total_availability_hours, 1),
+            'total_busy_hours': round(total_busy_hours, 1),
+            'total_leave_days': total_leave_days,
+            'total_scheduled_days': len(all_dates),
+            'availability_rate': round((len(availability_dates) / len(all_dates) * 100) if all_dates else 0, 1)
+        }
+        
+        return jsonify({
+            'success': True, 
+            'data': availability_data,
+            'analytics': analytics
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/availability-analytics')
+@login_required
+def availability_analytics_page():
+    """Availability analytics dashboard page"""
+    return render_template('availability_analytics.html')
+
 @app.route('/api/timesheet/download', methods=['GET'])
 @login_required
 def download_timesheet():
