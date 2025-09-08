@@ -416,6 +416,9 @@ function generatePreview() {
         return;
     }
     
+    // Group dates by week for bar display
+    const weekGroups = groupDatesByWeek(dates, startTime, endTime);
+    
     const timelineHTML = `
         <div class="timeline-stats">
             <div class="timeline-stat">
@@ -431,14 +434,34 @@ function generatePreview() {
                 <div class="timeline-stat-label">Total Hours</div>
             </div>
         </div>
-        <div class="mt-3">
-            ${dates.map(dateObj => `
-                <div class="timeline-day" data-date="${dateObj.date}">
-                    <div class="timeline-day-info">
-                        <div class="timeline-day-date">${formatDateDisplay(dateObj.date)}</div>
-                        <div class="timeline-day-time">${formatTime12Hour(startTime)} - ${formatTime12Hour(endTime)}</div>
+        <div class="gantt-timeline mt-4">
+            <div class="gantt-header">
+                <div class="gantt-time-label">Time</div>
+                <div class="gantt-days-header">
+                    <div class="gantt-day-label">Sun</div>
+                    <div class="gantt-day-label">Mon</div>
+                    <div class="gantt-day-label">Tue</div>
+                    <div class="gantt-day-label">Wed</div>
+                    <div class="gantt-day-label">Thu</div>
+                    <div class="gantt-day-label">Fri</div>
+                    <div class="gantt-day-label">Sat</div>
+                </div>
+            </div>
+            ${weekGroups.map(week => `
+                <div class="gantt-week-row">
+                    <div class="gantt-week-label">
+                        <div class="week-range">${week.startDate} - ${week.endDate}</div>
+                        <div class="week-time">${formatTime12Hour(startTime)} - ${formatTime12Hour(endTime)}</div>
                     </div>
-                    <div class="timeline-day-weekday">${dateObj.weekday}</div>
+                    <div class="gantt-week-days">
+                        ${[0,1,2,3,4,5,6].map(dayIndex => `
+                            <div class="gantt-day-cell ${week.days[dayIndex] ? 'has-availability' : ''}" 
+                                 data-date="${week.days[dayIndex] || ''}"
+                                 title="${week.days[dayIndex] ? formatDateDisplay(week.days[dayIndex]) + ' - Available' : 'Not selected'}">
+                                ${week.days[dayIndex] ? '<div class="availability-bar"></div>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             `).join('')}
         </div>
@@ -609,6 +632,38 @@ function calculateTotalHours(startTime, endTime, numDays) {
     const hoursPerDay = durationMinutes / 60;
     
     return (hoursPerDay * numDays).toFixed(1);
+}
+
+function groupDatesByWeek(dates, startTime, endTime) {
+    if (dates.length === 0) return [];
+    
+    const weeks = [];
+    let currentWeek = null;
+    
+    dates.forEach(dateObj => {
+        const date = new Date(dateObj.date);
+        const sunday = new Date(date);
+        sunday.setDate(date.getDate() - date.getDay());
+        const weekKey = sunday.toISOString().split('T')[0];
+        
+        if (!currentWeek || currentWeek.weekKey !== weekKey) {
+            const saturday = new Date(sunday);
+            saturday.setDate(sunday.getDate() + 6);
+            
+            currentWeek = {
+                weekKey: weekKey,
+                startDate: sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                endDate: saturday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                days: [null, null, null, null, null, null, null] // Sun, Mon, Tue, Wed, Thu, Fri, Sat
+            };
+            weeks.push(currentWeek);
+        }
+        
+        const dayOfWeek = date.getDay();
+        currentWeek.days[dayOfWeek] = dateObj.date;
+    });
+    
+    return weeks;
 }
 
 function showEventDetails(event) {

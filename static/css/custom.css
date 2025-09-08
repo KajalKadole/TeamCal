@@ -1154,6 +1154,183 @@ input[type="date"] {
     margin-top: 2rem;
 }
 
+/* Gantt Timeline Bar Format */
+.gantt-timeline {
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.gantt-header {
+    display: flex;
+    background: var(--bs-secondary-bg);
+    border-bottom: 2px solid var(--bs-border-color);
+    font-weight: 600;
+    color: var(--bs-body-color);
+}
+
+.gantt-time-label {
+    width: 200px;
+    padding: 1rem;
+    border-right: 1px solid var(--bs-border-color);
+    text-align: center;
+    background: var(--bs-primary);
+    color: white;
+}
+
+.gantt-days-header {
+    display: flex;
+    flex: 1;
+}
+
+.gantt-day-label {
+    flex: 1;
+    padding: 1rem;
+    text-align: center;
+    border-right: 1px solid var(--bs-border-color);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.gantt-day-label:last-child {
+    border-right: none;
+}
+
+.gantt-week-row {
+    display: flex;
+    border-bottom: 1px solid var(--bs-border-color);
+    transition: background-color 0.2s ease;
+}
+
+.gantt-week-row:hover {
+    background: var(--bs-secondary-bg);
+}
+
+.gantt-week-row:last-child {
+    border-bottom: none;
+}
+
+.gantt-week-label {
+    width: 200px;
+    padding: 1rem;
+    border-right: 1px solid var(--bs-border-color);
+    background: var(--bs-secondary-bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.week-range {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--bs-body-color);
+    margin-bottom: 0.25rem;
+}
+
+.week-time {
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color);
+}
+
+.gantt-week-days {
+    display: flex;
+    flex: 1;
+}
+
+.gantt-day-cell {
+    flex: 1;
+    height: 60px;
+    border-right: 1px solid var(--bs-border-color);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.gantt-day-cell:last-child {
+    border-right: none;
+}
+
+.gantt-day-cell:not(.has-availability) {
+    background: var(--bs-body-bg);
+    opacity: 0.5;
+}
+
+.gantt-day-cell.has-availability {
+    background: rgba(var(--bs-success-rgb), 0.1);
+}
+
+.gantt-day-cell.has-availability:hover {
+    background: rgba(var(--bs-success-rgb), 0.2);
+    transform: scale(1.02);
+}
+
+.availability-bar {
+    width: 80%;
+    height: 20px;
+    background: linear-gradient(90deg, var(--bs-success), #4ade80);
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+}
+
+.availability-bar::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+@keyframes slideIn {
+    from {
+        width: 0%;
+        opacity: 0;
+    }
+    to {
+        width: 80%;
+        opacity: 1;
+    }
+}
+
+/* Tooltip enhancement */
+.gantt-day-cell[title]:hover::before {
+    content: attr(title);
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bs-dark);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.gantt-day-cell[title]:hover::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid var(--bs-dark);
+    z-index: 1000;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .hero-title {
