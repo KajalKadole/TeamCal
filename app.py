@@ -62,5 +62,42 @@ with app.app_context():
         db.session.commit()
         print("Admin user created: admin@teamcal.com / admin123")
 
+# Add template filters for timezone conversion
+from utils.timezone_helper import convert_utc_to_user_timezone, format_datetime_for_user
+from flask_login import current_user
+
+@app.template_filter('user_timezone')
+def user_timezone_filter(utc_datetime):
+    """Template filter to convert UTC datetime to user's timezone"""
+    if not utc_datetime:
+        return ''
+    try:
+        user_datetime = convert_utc_to_user_timezone(utc_datetime)
+        return user_datetime.strftime('%Y-%m-%d %H:%M:%S')
+    except:
+        return utc_datetime.strftime('%Y-%m-%d %H:%M:%S') if utc_datetime else ''
+
+@app.template_filter('user_time')
+def user_time_filter(utc_datetime):
+    """Template filter to show just time in user's timezone"""
+    if not utc_datetime:
+        return ''
+    try:
+        user_datetime = convert_utc_to_user_timezone(utc_datetime)
+        return user_datetime.strftime('%H:%M:%S')
+    except:
+        return utc_datetime.strftime('%H:%M:%S') if utc_datetime else ''
+
+@app.template_filter('user_date')
+def user_date_filter(utc_datetime):
+    """Template filter to show just date in user's timezone"""
+    if not utc_datetime:
+        return ''
+    try:
+        user_datetime = convert_utc_to_user_timezone(utc_datetime)
+        return user_datetime.strftime('%Y-%m-%d')
+    except:
+        return utc_datetime.strftime('%Y-%m-%d') if utc_datetime else ''
+
 # Import routes after app initialization
 import routes

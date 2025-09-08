@@ -6,6 +6,16 @@ from models import User, AvailabilitySlot, BusySlot, LeaveDay, TimesheetEntry, U
 from forms import LoginForm, RegistrationForm, AvailabilityForm, BusySlotForm, LeaveDayForm, ProfileForm, AddEmployeeForm
 from datetime import datetime, date, time
 import json
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from utils.timezone_helper import (
+    convert_utc_to_user_timezone, 
+    convert_user_timezone_to_utc, 
+    get_current_time_in_user_timezone,
+    format_datetime_for_user,
+    get_user_timezone
+)
 
 @app.route('/')
 def index():
@@ -413,11 +423,12 @@ def clock_in():
         if active_entry:
             return jsonify({'success': False, 'error': 'Already clocked in'}), 400
         
-        # Create new timesheet entry
+        # Create new timesheet entry - times stored in UTC
+        utc_now = datetime.utcnow()
         entry = TimesheetEntry(
             user_id=current_user.id,
-            date=datetime.now().date(),
-            clock_in=datetime.now(),
+            date=utc_now.date(),
+            clock_in=utc_now,
             location=data.get('location', 'Office'),
             notes=data.get('notes', '')
         )
@@ -435,14 +446,17 @@ def clock_in():
         user_status.current_timesheet_id = entry.id
         user_status.status_message = 'Available'
         user_status.current_task = data.get('task', '')
-        user_status.last_activity = datetime.now()
+        user_status.last_activity = datetime.utcnow()
         
         db.session.commit()
+        
+        # Convert UTC times to user's timezone for display
+        user_clock_in = convert_utc_to_user_timezone(entry.clock_in)
         
         return jsonify({
             'success': True,
             'entry_id': entry.id,
-            'clock_in': entry.clock_in.isoformat(),
+            'clock_in': user_clock_in.isoformat(),
             'status': 'clocked_in'
         })
     except Exception as e:
@@ -472,7 +486,7 @@ def clock_out():
             break_end=None
         ).all()
         
-        clock_out_time = datetime.now()
+        clock_out_time = datetime.utcnow()
         for break_entry in active_breaks:
             break_entry.break_end = clock_out_time
         
@@ -499,14 +513,17 @@ def clock_out():
             user_status.current_timesheet_id = None
             user_status.status_message = 'Offline'
             user_status.current_task = ''
-            user_status.last_activity = datetime.now()
+            user_status.last_activity = datetime.utcnow()
         
         db.session.commit()
+        
+        # Convert UTC times to user's timezone for display
+        user_clock_out = convert_utc_to_user_timezone(entry.clock_out)
         
         return jsonify({
             'success': True,
             'entry_id': entry.id,
-            'clock_out': entry.clock_out.isoformat(),
+            'clock_out': user_clock_out.isoformat(),
             'duration': entry.duration,
             'status': 'clocked_out'
         })
@@ -538,11 +555,11 @@ def start_break():
         if active_break:
             return jsonify({'success': False, 'error': 'Break is already in progress'}), 400
         
-        # Create new break entry
+        # Create new break entry - times stored in UTC
         break_entry = BreakEntry(
             user_id=current_user.id,
             timesheet_entry_id=active_entry.id,
-            break_start=datetime.now(),
+            break_start=datetime.utcnow(),
             break_type=request.json.get('break_type', 'Break')
         )
         
@@ -704,7 +721,7 @@ def update_user_status():
         if 'current_task' in data:
             user_status.current_task = data['current_task']
         
-        user_status.last_activity = datetime.now()
+        user_status.last_activity = datetime.utcnow()
         
         db.session.commit()
         
@@ -1100,12 +1117,17 @@ def download_timesheet():
             # Status determination
             status = 'Active' if entry.is_active else 'Completed'
             
+            # Convert times to user's timezone for display
+            user_clock_in = convert_utc_to_user_timezone(entry.clock_in, current_user.timezone)
+            user_clock_out = convert_utc_to_user_timezone(entry.clock_out, current_user.timezone) if entry.clock_out else None
+            user_date = user_clock_in.date() if user_clock_in else entry.date
+            
             writer.writerow([
-                entry.date.strftime('%Y-%m-%d'),  # Date in YYYY-MM-DD format
-                entry.date.strftime('%A'),       # Day of week (Monday, Tuesday, etc.)
+                user_date.strftime('%Y-%m-%d'),  # Date in user's timezone
+                user_date.strftime('%A'),       # Day of week in user's timezone
                 entry.user.username,
-                entry.clock_in.strftime('%I:%M:%S %p'),  # 12-hour format with AM/PM
-                entry.clock_out.strftime('%I:%M:%S %p') if entry.clock_out else 'Still Active',
+                user_clock_in.strftime('%I:%M:%S %p'),  # 12-hour format with AM/PM in user's timezone
+                user_clock_out.strftime('%I:%M:%S %p') if user_clock_out else 'Still Active',
                 f"{work_hours:.2f}",
                 break_minutes,
                 f"{total_hours:.2f}",
