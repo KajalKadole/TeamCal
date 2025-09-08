@@ -27,21 +27,24 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         events: function(fetchInfo, successCallback, failureCallback) {
             // Get current filter settings
-            const filterType = document.querySelector('input[name="filterType"]:checked')?.value || 'all';
             const userFilter = document.getElementById('userFilter')?.value || 'all';
             const departmentFilter = document.getElementById('departmentFilter')?.value || 'all';
             
             // Build URL with filter parameters
             const params = new URLSearchParams({
-                filter_type: filterType,
                 start: fetchInfo.startStr,
                 end: fetchInfo.endStr
             });
             
-            if (filterType === 'individual' && userFilter !== 'all') {
+            // Priority: user filter takes precedence over department filter
+            if (userFilter !== 'all') {
+                params.append('filter_type', 'individual');
                 params.append('user_id', userFilter);
-            } else if (filterType === 'department' && departmentFilter !== 'all') {
+            } else if (departmentFilter !== 'all') {
+                params.append('filter_type', 'department');
                 params.append('department_id', departmentFilter);
+            } else {
+                params.append('filter_type', 'all');
             }
             
             fetch(`/api/events?${params.toString()}`)
@@ -98,39 +101,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupCalendarFilters() {
-    // Add event listeners for filter type radio buttons
-    document.querySelectorAll('input[name="filterType"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const filterType = this.value;
-            const userFilter = document.getElementById('userFilter');
-            const departmentFilter = document.getElementById('departmentFilter');
-            
-            // Hide all filter selects first
-            if (userFilter) userFilter.style.display = 'none';
-            if (departmentFilter) departmentFilter.style.display = 'none';
-            
-            // Show appropriate filter based on selection
-            if (filterType === 'individual' && userFilter) {
-                userFilter.style.display = 'block';
-            } else if (filterType === 'department' && departmentFilter) {
-                departmentFilter.style.display = 'block';
-            }
-            
-            // Refresh calendar
-            filterCalendar();
-        });
-    });
-    
-    // Add change event listeners to the select elements
     const userFilter = document.getElementById('userFilter');
     const departmentFilter = document.getElementById('departmentFilter');
     
     if (userFilter) {
-        userFilter.addEventListener('change', filterCalendar);
+        userFilter.addEventListener('change', function() {
+            // When user filter changes, reset department filter to "all" and refresh
+            if (this.value !== 'all' && departmentFilter) {
+                departmentFilter.value = 'all';
+            }
+            filterCalendar();
+        });
     }
     
     if (departmentFilter) {
-        departmentFilter.addEventListener('change', filterCalendar);
+        departmentFilter.addEventListener('change', function() {
+            // When department filter changes, reset user filter to "all" and refresh
+            if (this.value !== 'all' && userFilter) {
+                userFilter.value = 'all';
+            }
+            filterCalendar();
+        });
     }
 }
 

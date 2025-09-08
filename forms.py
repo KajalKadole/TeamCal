@@ -18,7 +18,8 @@ class RegistrationForm(FlaskForm):
     
     def __init__(self, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
-        self.department_id.choices = [(dept.id, dept.name) for dept in Department.query.order_by(Department.name).all()]
+        departments = Department.query.order_by(Department.name).all()
+        self.department_id.choices = [(dept.id, dept.name) for dept in departments]
         if not self.department_id.choices:
             self.department_id.choices = [(0, 'No departments available')]
     
@@ -83,6 +84,7 @@ class DepartmentForm(FlaskForm):
     submit = SubmitField('Save Department')
     
     def validate_name(self, name):
+        # Only check during creation (not during editing)
         department = Department.query.filter_by(name=name.data).first()
         if department is not None:
             raise ValidationError('A department with this name already exists.')
@@ -90,8 +92,14 @@ class DepartmentForm(FlaskForm):
 class AddEmployeeForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=20)])
     email = StringField('Email', validators=[DataRequired(), Email()])
+    department_id = SelectField('Department', coerce=int, validators=[DataRequired()])
     password = PasswordField('Temporary Password', validators=[DataRequired(), Length(min=6)])
     submit = SubmitField('Add Employee')
+    
+    def __init__(self, *args, **kwargs):
+        super(AddEmployeeForm, self).__init__(*args, **kwargs)
+        departments = Department.query.order_by(Department.name).all()
+        self.department_id.choices = [(dept.id, dept.name) for dept in departments]
     
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()

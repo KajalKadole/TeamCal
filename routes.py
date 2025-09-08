@@ -258,7 +258,9 @@ def add_employee():
         user = User(
             username=form.username.data,
             email=form.email.data,
-            password_hash=generate_password_hash(form.password.data)
+            department_id=form.department_id.data,
+            password_hash=generate_password_hash(form.password.data),
+            approval_status='approved'  # Admin-added users are auto-approved
         )
         db.session.add(user)
         db.session.commit()
