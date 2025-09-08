@@ -66,6 +66,8 @@ def register():
         db.session.commit()
         flash('Registration successful! Your account is pending admin approval. You will be able to log in once approved.', 'info')
         return redirect(url_for('login'))
+    
+    return render_template('register.html', form=form)
 
 # Department management routes
 @app.route('/admin/departments')
