@@ -208,34 +208,68 @@ function populateEmployeeLists(data) {
 }
 
 function assignEmployee(userId, username) {
+    console.log('Assigning employee:', userId, username, 'to department:', currentDeptId);
+    
     fetch(`/admin/departments/${currentDeptId}/assign/${userId}`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'}
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Assign response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Assign response data:', data);
         if (data.success) {
             showAlert(`${username} assigned successfully`, 'success');
+            // Refresh the employee lists
             showManageEmployees(currentDeptId, document.getElementById('departmentName').textContent);
         } else {
-            showAlert(data.error, 'danger');
+            showAlert(data.error || 'Assignment failed', 'danger');
         }
+    })
+    .catch(error => {
+        console.error('Assignment error:', error);
+        showAlert(`Failed to assign ${username}: ${error.message}`, 'danger');
     });
 }
 
 function unassignEmployee(userId, username) {
+    console.log('Unassigning employee:', userId, username, 'from department:', currentDeptId);
+    
     fetch(`/admin/departments/${currentDeptId}/unassign/${userId}`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'}
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Unassign response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
+        console.log('Unassign response data:', data);
         if (data.success) {
             showAlert(`${username} unassigned successfully`, 'success');
+            // Refresh the employee lists
             showManageEmployees(currentDeptId, document.getElementById('departmentName').textContent);
         } else {
-            showAlert(data.error, 'danger');
+            showAlert(data.error || 'Unassignment failed', 'danger');
         }
+    })
+    .catch(error => {
+        console.error('Unassignment error:', error);
+        showAlert(`Failed to unassign ${username}: ${error.message}`, 'danger');
     });
 }
 
