@@ -1,118 +1,252 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-8 mx-auto text-center">
-        <h1 class="display-4 mb-4">
-            <i class="fas fa-calendar-alt text-primary me-3"></i>
-            Ziqsy Team Calendar
-        </h1>
-        <p class="lead mb-5">
-            Streamline your team's scheduling with our comprehensive availability management system. 
-            Track employee schedules, manage busy periods, and coordinate leave requests all in one place.
-        </p>
-        
-        {% if not current_user.is_authenticated %}
-        <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">
-                <i class="fas fa-user-plus me-2"></i>Get Started
-            </a>
-            <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg">
-                <i class="fas fa-sign-in-alt me-2"></i>Login
-            </a>
-        </div>
-        {% else %}
-        <div class="d-grid gap-2 d-md-block">
-            <a href="{{ url_for('calendar') }}" class="btn btn-primary btn-lg">
-                <i class="fas fa-calendar me-2"></i>View Calendar
-            </a>
-            <a href="{{ url_for('profile') }}" class="btn btn-outline-secondary btn-lg">
-                <i class="fas fa-user-cog me-2"></i>Manage Profile
-            </a>
-        </div>
-        {% endif %}
-    </div>
-</div>
-
-<div class="row mt-5">
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-clock fa-3x text-success mb-3"></i>
-                <h5 class="card-title">Availability Management</h5>
-                <p class="card-text">
-                    Set your working hours and available time slots. Team members can easily see when you're free.
-                </p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-ban fa-3x text-danger mb-3"></i>
-                <h5 class="card-title">Busy Periods</h5>
-                <p class="card-text">
-                    Mark specific time slots as busy with custom descriptions. Keep your team informed about meetings and commitments.
-                </p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-umbrella-beach fa-3x text-warning mb-3"></i>
-                <h5 class="card-title">Leave Management</h5>
-                <p class="card-text">
-                    Request time off with optional notes. Track vacation days, sick leave, and personal time effortlessly.
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-5">
-    <div class="col-lg-10 mx-auto">
-        <div class="card">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">
-                    <i class="fas fa-users me-2"></i>Master Calendar View
-                </h3>
-                <p class="text-center">
-                    The master calendar consolidates all team members' schedules into one comprehensive view. 
-                    Color-coded entries make it easy to identify availability (green), busy periods (red), 
-                    and leave days (yellow) at a glance.
-                </p>
-                
-                <div class="row text-center mt-4">
-                    <div class="col-md-4">
-                        <div class="p-3">
-                            <span class="badge bg-success fs-6 mb-2">
-                                <i class="fas fa-check-circle me-1"></i>Available
-                            </span>
-                            <p class="small mb-0">Employee is available during this time</p>
+<div class="homepage">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-75">
+                <div class="col-lg-6">
+                    <div class="hero-content">
+                        <div class="hero-badge">
+                            <i class="fas fa-star me-2"></i>
+                            Professional Team Management
                         </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="p-3">
-                            <span class="badge bg-danger fs-6 mb-2">
-                                <i class="fas fa-times-circle me-1"></i>Busy
-                            </span>
-                            <p class="small mb-0">Employee has meetings or commitments</p>
+                        <h1 class="hero-title">
+                            <span class="gradient-text">Ziqsy Team Calendar</span>
+                        </h1>
+                        <p class="hero-subtitle">
+                            Streamline your team's scheduling with our comprehensive availability management system. 
+                            Track employee schedules, manage busy periods, and coordinate leave requests all in one place.
+                        </p>
+                        
+                        {% if not current_user.is_authenticated %}
+                        <div class="hero-actions">
+                            <a href="{{ url_for('register') }}" class="btn btn-hero-primary">
+                                <i class="fas fa-rocket me-2"></i>Get Started Free
+                            </a>
+                            <a href="{{ url_for('login') }}" class="btn btn-hero-secondary">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </a>
                         </div>
+                        {% else %}
+                        <div class="hero-actions">
+                            <a href="{{ url_for('calendar') }}" class="btn btn-hero-primary">
+                                <i class="fas fa-calendar-check me-2"></i>View Calendar
+                            </a>
+                            <a href="{{ url_for('timesheet') }}" class="btn btn-hero-secondary">
+                                <i class="fas fa-clock me-2"></i>Timesheet
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="col-md-4">
-                        <div class="p-3">
-                            <span class="badge bg-warning fs-6 mb-2">
-                                <i class="fas fa-calendar-times me-1"></i>On Leave
-                            </span>
-                            <p class="small mb-0">Employee is on vacation or leave</p>
+                </div>
+                <div class="col-lg-6">
+                    <div class="hero-visual">
+                        <div class="calendar-mockup">
+                            <div class="calendar-header">
+                                <div class="calendar-controls">
+                                    <div class="control-btn"></div>
+                                    <div class="control-btn"></div>
+                                    <div class="control-btn"></div>
+                                </div>
+                                <div class="calendar-title">Team Calendar</div>
+                            </div>
+                            <div class="calendar-grid">
+                                <div class="calendar-day available"><span>15</span></div>
+                                <div class="calendar-day busy"><span>16</span></div>
+                                <div class="calendar-day available"><span>17</span></div>
+                                <div class="calendar-day leave"><span>18</span></div>
+                                <div class="calendar-day available"><span>19</span></div>
+                                <div class="calendar-day available"><span>20</span></div>
+                                <div class="calendar-day busy"><span>21</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center mb-5">
+                    <h2 class="section-title">Powerful Features for Modern Teams</h2>
+                    <p class="section-subtitle">Everything you need to manage your team's schedule efficiently</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h5 class="feature-title">Smart Scheduling</h5>
+                        <p class="feature-description">
+                            Set your working hours and available time slots. Team members can easily see when you're free with intelligent conflict detection.
+                        </p>
+                        <div class="feature-stats">
+                            <span class="stat-item">
+                                <i class="fas fa-check text-success"></i>
+                                Real-time sync
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h5 class="feature-title">Time Tracking</h5>
+                        <p class="feature-description">
+                            Track work hours with automatic checkout after 6 hours. Monitor break times and generate detailed analytics for better productivity.
+                        </p>
+                        <div class="feature-stats">
+                            <span class="stat-item">
+                                <i class="fas fa-chart-line text-primary"></i>
+                                Analytics included
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h5 class="feature-title">Team Collaboration</h5>
+                        <p class="feature-description">
+                            Real-time team status updates, leave management, and collaborative calendar views. Keep everyone in sync effortlessly.
+                        </p>
+                        <div class="feature-stats">
+                            <span class="stat-item">
+                                <i class="fas fa-globe text-info"></i>
+                                Multi-timezone support
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h5 class="feature-title">Admin Controls</h5>
+                        <p class="feature-description">
+                            Comprehensive admin panel with user management, approval workflows, and detailed analytics dashboard for team insights.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h5 class="feature-title">Mobile Responsive</h5>
+                        <p class="feature-description">
+                            Access your calendar from any device. Optimized mobile experience ensures you stay connected wherever you are.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h5 class="feature-title">Export & Analytics</h5>
+                        <p class="feature-description">
+                            Export timesheets to CSV, generate availability reports, and access detailed analytics for data-driven decisions.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Legend Section -->
+    <div class="legend-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-10 mx-auto">
+                    <div class="legend-card">
+                        <div class="legend-header">
+                            <h3 class="legend-title">
+                                <i class="fas fa-palette me-3"></i>
+                                Calendar Color Guide
+                            </h3>
+                            <p class="legend-subtitle">
+                                Quick reference for understanding your team's schedule at a glance
+                            </p>
+                        </div>
+                        
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="legend-item">
+                                    <div class="legend-color available"></div>
+                                    <div class="legend-content">
+                                        <h6>Available</h6>
+                                        <p>Team member is available and ready to work</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="legend-item">
+                                    <div class="legend-color busy"></div>
+                                    <div class="legend-content">
+                                        <h6>Busy</h6>
+                                        <p>Team member has meetings or other commitments</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="legend-item">
+                                    <div class="legend-color leave"></div>
+                                    <div class="legend-content">
+                                        <h6>On Leave</h6>
+                                        <p>Team member is on vacation or personal leave</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA Section -->
+    {% if not current_user.is_authenticated %}
+    <div class="cta-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="cta-content">
+                        <h2 class="cta-title">Ready to Transform Your Team Management?</h2>
+                        <p class="cta-subtitle">
+                            Join teams worldwide who trust Ziqsy Team Calendar for efficient scheduling and time management.
+                        </p>
+                        <div class="cta-actions">
+                            <a href="{{ url_for('register') }}" class="btn btn-cta-primary">
+                                <i class="fas fa-rocket me-2"></i>Start Free Today
+                            </a>
+                            <a href="{{ url_for('login') }}" class="btn btn-cta-secondary">
+                                <i class="fas fa-play me-2"></i>Try Demo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
