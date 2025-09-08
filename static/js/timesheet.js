@@ -439,14 +439,28 @@ function getStartOfWeek(date) {
 }
 
 function downloadTimesheet() {
-    // Use the server-side CSV download endpoint
-    const currentDate = new Date();
-    const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    // Use the selected date range from the UI, or default to current month
+    const startDatePicker = document.getElementById('startDatePicker');
+    const endDatePicker = document.getElementById('endDatePicker');
+    
+    let startDate, endDate;
+    
+    if (startDatePicker && endDatePicker && startDatePicker.value && endDatePicker.value) {
+        startDate = startDatePicker.value;
+        endDate = endDatePicker.value;
+    } else {
+        // Default to current month
+        const currentDate = new Date();
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        startDate = startOfMonth.toISOString().split('T')[0];
+        endDate = endOfMonth.toISOString().split('T')[0];
+    }
     
     const params = new URLSearchParams({
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0]
+        start_date: startDate,
+        end_date: endDate
     });
     
     // Open the download URL directly to trigger file download
