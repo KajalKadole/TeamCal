@@ -975,8 +975,7 @@ def check_and_perform_auto_checkout(user_id):
         if hours_worked >= 6:
             # Perform automatic checkout
             active_entry.clock_out = utc_now
-            active_entry.duration = int((utc_now - active_entry.clock_in).total_seconds() / 60)
-            active_entry.is_active = False
+            # Note: duration is calculated automatically via @property, don't set it directly
             existing_notes = active_entry.notes or ''
             active_entry.notes = existing_notes + ' [Auto-checkout after 6 hours]' if existing_notes else '[Auto-checkout after 6 hours]'
             
