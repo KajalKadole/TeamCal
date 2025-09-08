@@ -77,6 +77,35 @@
                         </div>
                     </div>
                     
+                    <hr>
+                    <h5 class="mb-3">
+                        <i class="fas fa-globe me-2"></i>Timezone Settings
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Choose your timezone to see times in your local time. Times will be adjusted automatically.
+                    </p>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            {{ form.timezone.label(class="form-label") }}
+                            {{ form.timezone(class="form-select" + (" is-invalid" if form.timezone.errors else ""), id="timezone-select") }}
+                            <div class="form-text" id="detected-timezone">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <span>Detected browser timezone: <span id="browser-timezone">Loading...</span></span>
+                                <button type="button" class="btn btn-link btn-sm p-0 ms-2" onclick="autoDetectTimezone()">
+                                    <i class="fas fa-sync-alt me-1"></i>Auto-detect
+                                </button>
+                            </div>
+                            {% if form.timezone.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.timezone.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
                     <div class="d-grid">
                         {{ form.submit(class="btn btn-primary") }}
                     </div>
@@ -129,4 +158,122 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Timezone detection and auto-select functionality
+function detectBrowserTimezone() {
+    try {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        return timezone;
+    } catch (e) {
+        console.error('Failed to detect timezone:', e);
+        return 'UTC';
+    }
+}
+
+function mapTimezoneToSupported(detectedTz) {
+    // Map detected timezone to our supported options
+    const timezoneMapping = {
+        'Asia/Kolkata': 'Asia/Kolkata',
+        'Europe/Berlin': 'Europe/Berlin',
+        'Europe/London': 'Europe/London',
+        'UTC': 'UTC',
+        'Europe/Warsaw': 'Europe/Berlin',  // Similar timezone
+        'Europe/Paris': 'Europe/Berlin',   // Similar timezone
+        'Europe/Rome': 'Europe/Berlin',    // Similar timezone
+        'Europe/Amsterdam': 'Europe/Berlin', // Similar timezone
+        'Asia/Calcutta': 'Asia/Kolkata',   // Alternative name
+        'GMT': 'Europe/London',            // GMT maps to London
+        'Europe/Dublin': 'Europe/London'   // Similar timezone
+    };
+    
+    return timezoneMapping[detectedTz] || 'UTC';
+}
+
+function updateBrowserTimezoneDisplay() {
+    const detectedTz = detectBrowserTimezone();
+    const mappedTz = mapTimezoneToSupported(detectedTz);
+    
+    const browserTzElement = document.getElementById('browser-timezone');
+    if (browserTzElement) {
+        const displayName = getTimezoneDisplayName(detectedTz);
+        browserTzElement.textContent = displayName;
+        
+        // If the detected timezone matches one of our supported ones, show suggestion
+        if (mappedTz !== 'UTC' && mappedTz !== document.getElementById('timezone-select').value) {
+            const suggestionElement = document.createElement('div');
+            suggestionElement.className = 'text-warning mt-1';
+            suggestionElement.innerHTML = `<i class="fas fa-lightbulb me-1"></i>Consider selecting "${getSelectOptionText(mappedTz)}" for your location.`;
+            browserTzElement.parentElement.appendChild(suggestionElement);
+        }
+    }
+}
+
+function getTimezoneDisplayName(timezone) {
+    const names = {
+        'Asia/Kolkata': 'India Standard Time (IST)',
+        'Europe/Berlin': 'Central European Time (CET)',
+        'Europe/London': 'Greenwich Mean Time (GMT)',
+        'UTC': 'UTC (Coordinated Universal Time)'
+    };
+    return names[timezone] || timezone;
+}
+
+function getSelectOptionText(timezone) {
+    const options = {
+        'UTC': 'UTC (Coordinated Universal Time)',
+        'Asia/Kolkata': 'India Standard Time (IST)',
+        'Europe/Berlin': 'Central European Time (CET)',
+        'Europe/London': 'Greenwich Mean Time (GMT)'
+    };
+    return options[timezone] || timezone;
+}
+
+function autoDetectTimezone() {
+    const detectedTz = detectBrowserTimezone();
+    const mappedTz = mapTimezoneToSupported(detectedTz);
+    
+    const select = document.getElementById('timezone-select');
+    if (select) {
+        select.value = mappedTz;
+        
+        // Show feedback
+        const feedback = document.createElement('div');
+        feedback.className = 'alert alert-success alert-dismissible fade show mt-2';
+        feedback.innerHTML = `
+            <i class="fas fa-check me-1"></i>
+            Timezone auto-detected: ${getSelectOptionText(mappedTz)}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = select.parentElement;
+        container.appendChild(feedback);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.remove();
+            }
+        }, 3000);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateBrowserTimezoneDisplay();
+    
+    // Also auto-detect if the current selection is UTC and browser has a different timezone
+    const select = document.getElementById('timezone-select');
+    if (select && select.value === 'UTC') {
+        const detectedTz = detectBrowserTimezone();
+        const mappedTz = mapTimezoneToSupported(detectedTz);
+        if (mappedTz !== 'UTC') {
+            // Don't auto-change, but show suggestion
+            console.log('Detected timezone differs from current setting. Showing suggestion.');
+        }
+    }
+});
+</script>
 {% endblock %}
