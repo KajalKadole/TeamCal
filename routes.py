@@ -1236,6 +1236,20 @@ def availability_analytics_page():
     """Availability analytics dashboard page"""
     return render_template('availability_analytics.html')
 
+@app.route('/api/users')
+@login_required
+def get_users():
+    """Get list of users (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    try:
+        users = User.query.filter_by(approval_status='approved').order_by(User.username).all()
+        users_data = [{'id': user.id, 'username': user.username} for user in users]
+        return jsonify({'success': True, 'users': users_data})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/timesheet/download', methods=['GET'])
 @login_required
 def download_timesheet():
