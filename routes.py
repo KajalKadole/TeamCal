@@ -2,8 +2,8 @@ from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import app, db
-from models import User, AvailabilitySlot, BusySlot, LeaveDay, TimesheetEntry, UserStatus, BreakEntry
-from forms import LoginForm, RegistrationForm, AvailabilityForm, BusySlotForm, LeaveDayForm, ProfileForm, AddEmployeeForm
+from models import User, Department, AvailabilitySlot, BusySlot, LeaveDay, TimesheetEntry, UserStatus, BreakEntry
+from forms import LoginForm, RegistrationForm, AvailabilityForm, BusySlotForm, LeaveDayForm, ProfileForm, AddEmployeeForm, DepartmentForm
 from datetime import datetime, date, time
 import json
 import sys
@@ -58,6 +58,7 @@ def register():
         user = User(
             username=form.username.data,
             email=form.email.data,
+            department_id=form.department_id.data if form.department_id.data != 0 else None,
             password_hash=generate_password_hash(form.password.data),
             approval_status='pending'  # New users need approval
         )
@@ -65,6 +66,64 @@ def register():
         db.session.commit()
         flash('Registration successful! Your account is pending admin approval. You will be able to log in once approved.', 'info')
         return redirect(url_for('login'))
+
+# Department management routes
+@app.route('/admin/departments')
+@login_required
+def admin_departments():
+    """Admin page to manage departments"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('calendar'))
+    
+    departments = Department.query.order_by(Department.name).all()
+    return render_template('admin/departments.html', departments=departments)
+
+@app.route('/admin/departments/add', methods=['GET', 'POST'])
+@login_required
+def add_department():
+    """Add a new department"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('calendar'))
+    
+    form = DepartmentForm()
+    if form.validate_on_submit():
+        department = Department(
+            name=form.name.data,
+            description=form.description.data
+        )
+        db.session.add(department)
+        db.session.commit()
+        flash(f'Department "{department.name}" created successfully!', 'success')
+        return redirect(url_for('admin_departments'))
+    
+    return render_template('admin/add_department.html', form=form)
+
+@app.route('/admin/departments/<int:dept_id>/delete', methods=['POST'])
+@login_required
+def delete_department(dept_id):
+    """Delete a department"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    department = Department.query.get_or_404(dept_id)
+    
+    # Check if department has users
+    user_count = User.query.filter_by(department_id=dept_id).count()
+    if user_count > 0:
+        return jsonify({
+            'success': False, 
+            'error': f'Cannot delete department "{department.name}" - it has {user_count} users assigned'
+        }), 400
+    
+    db.session.delete(department)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'Department "{department.name}" deleted successfully'
+    })
 
 # Admin routes for user approval management
 @app.route('/admin/users')
@@ -142,7 +201,8 @@ def logout():
 @login_required
 def calendar():
     users = User.query.all() if current_user.is_admin else [current_user]
-    return render_template('calendar.html', users=users)
+    departments = Department.query.order_by(Department.name).all() if current_user.is_admin else []
+    return render_template('calendar.html', users=users, departments=departments)
 
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
@@ -152,6 +212,7 @@ def profile():
     if form.validate_on_submit():
         current_user.username = form.username.data
         current_user.email = form.email.data
+        current_user.department_id = form.department_id.data
         if form.default_start_time.data:
             current_user.default_start_time = form.default_start_time.data.strftime('%H:%M')
         if form.default_end_time.data:
@@ -166,6 +227,7 @@ def profile():
     if request.method == 'GET':
         form.username.data = current_user.username
         form.email.data = current_user.email
+        form.department_id.data = current_user.department_id
         if current_user.default_start_time:
             form.default_start_time.data = datetime.strptime(current_user.default_start_time, '%H:%M').time()
         if current_user.default_end_time:
@@ -215,17 +277,27 @@ def get_events():
     start_date = request.args.get('start')
     end_date = request.args.get('end')
     user_filter = request.args.get('user_id')
+    department_filter = request.args.get('department_id')
+    filter_type = request.args.get('filter_type', 'all')  # 'individual', 'department', 'all'
     
     events = []
     
-    # Determine which users to show
-    if current_user.is_admin and user_filter:
-        if user_filter == 'all':
+    # Determine which users to show based on filter type
+    if current_user.is_admin:
+        if filter_type == 'individual' and user_filter:
+            if user_filter == 'all':
+                users = User.query.all()
+            else:
+                users = [User.query.get(int(user_filter))]
+        elif filter_type == 'department' and department_filter:
+            if department_filter == 'all':
+                users = User.query.all()
+            else:
+                users = User.query.filter_by(department_id=int(department_filter)).all()
+        elif filter_type == 'all':
             users = User.query.all()
         else:
-            users = [User.query.get(int(user_filter))]
-    elif current_user.is_admin:
-        users = User.query.all()
+            users = User.query.all()
     else:
         users = [current_user]
     

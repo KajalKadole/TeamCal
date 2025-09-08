@@ -3,6 +3,18 @@ from flask_login import UserMixin
 from datetime import datetime
 from sqlalchemy.sql import func
 
+class Department(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=func.now())
+    
+    # Relationships
+    users = db.relationship('User', backref='department', lazy=True)
+    
+    def __repr__(self):
+        return f'<Department {self.name}>'
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
@@ -12,6 +24,7 @@ class User(UserMixin, db.Model):
     approval_status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
     approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Admin who approved
     approved_at = db.Column(db.DateTime, nullable=True)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)  # User's department
     default_start_time = db.Column(db.String(5), default='09:00')  # Format: HH:MM
     default_end_time = db.Column(db.String(5), default='17:00')    # Format: HH:MM
     timezone = db.Column(db.String(50), default='UTC')  # User's timezone (e.g., 'Asia/Kolkata', 'Europe/Berlin', 'Europe/London')

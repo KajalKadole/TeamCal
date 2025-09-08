@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, TimeField, DateField, TextAreaField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
-from models import User
+from models import User, Department
 
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -11,9 +11,16 @@ class LoginForm(FlaskForm):
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=20)])
     email = StringField('Email', validators=[DataRequired(), Email()])
+    department_id = SelectField('Department', coerce=int, validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     password2 = PasswordField('Repeat Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Register')
+    
+    def __init__(self, *args, **kwargs):
+        super(RegistrationForm, self).__init__(*args, **kwargs)
+        self.department_id.choices = [(dept.id, dept.name) for dept in Department.query.order_by(Department.name).all()]
+        if not self.department_id.choices:
+            self.department_id.choices = [(0, 'No departments available')]
     
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
@@ -55,6 +62,7 @@ class LeaveDayForm(FlaskForm):
 class ProfileForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=20)])
     email = StringField('Email', validators=[DataRequired(), Email()])
+    department_id = SelectField('Department', coerce=int, validators=[DataRequired()])
     default_start_time = TimeField('Default Start Time')
     default_end_time = TimeField('Default End Time')
     timezone = SelectField('Timezone', choices=[
@@ -64,6 +72,20 @@ class ProfileForm(FlaskForm):
         ('Europe/London', 'Greenwich Mean Time (GMT)')
     ], default='UTC')
     submit = SubmitField('Update Profile')
+    
+    def __init__(self, *args, **kwargs):
+        super(ProfileForm, self).__init__(*args, **kwargs)
+        self.department_id.choices = [(dept.id, dept.name) for dept in Department.query.order_by(Department.name).all()]
+
+class DepartmentForm(FlaskForm):
+    name = StringField('Department Name', validators=[DataRequired(), Length(min=2, max=100)])
+    description = TextAreaField('Description')
+    submit = SubmitField('Save Department')
+    
+    def validate_name(self, name):
+        department = Department.query.filter_by(name=name.data).first()
+        if department is not None:
+            raise ValidationError('A department with this name already exists.')
 
 class AddEmployeeForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=20)])

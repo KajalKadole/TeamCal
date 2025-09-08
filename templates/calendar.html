@@ -22,12 +22,33 @@
                         {% endif %}
                     </small>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap">
                     {% if current_user.is_admin %}
-                    <select id="userFilter" class="form-select form-select-sm" style="width: 200px;">
+                    <!-- Filter Type Selection -->
+                    <div class="btn-group" role="group" style="min-width: 300px;">
+                        <input type="radio" class="btn-check" name="filterType" id="filterAll" value="all" checked autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="filterAll">All Employees</label>
+                        
+                        <input type="radio" class="btn-check" name="filterType" id="filterIndividual" value="individual" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="filterIndividual">Individual</label>
+                        
+                        <input type="radio" class="btn-check" name="filterType" id="filterDepartment" value="department" autocomplete="off">
+                        <label class="btn btn-outline-primary btn-sm" for="filterDepartment">Department</label>
+                    </div>
+                    
+                    <!-- Individual Employee Filter -->
+                    <select class="form-select form-select-sm" id="userFilter" style="display: none; width: 200px;">
                         <option value="all">All Employees</option>
                         {% for user in users %}
-                        <option value="{{ user.id }}">{{ user.username }}</option>
+                        <option value="{{ user.id }}">{{ user.username }}{% if user.department %} ({{ user.department.name }}){% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <!-- Department Filter -->
+                    <select class="form-select form-select-sm" id="departmentFilter" style="display: none; width: 200px;">
+                        <option value="all">All Departments</option>
+                        {% for department in departments %}
+                        <option value="{{ department.id }}">{{ department.name }}</option>
                         {% endfor %}
                     </select>
                     {% endif %}

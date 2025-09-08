@@ -26,7 +26,25 @@ document.addEventListener('DOMContentLoaded', function() {
             meridiem: 'short'
         },
         events: function(fetchInfo, successCallback, failureCallback) {
-            fetch('/api/events')
+            // Get current filter settings
+            const filterType = document.querySelector('input[name="filterType"]:checked')?.value || 'all';
+            const userFilter = document.getElementById('userFilter')?.value || 'all';
+            const departmentFilter = document.getElementById('departmentFilter')?.value || 'all';
+            
+            // Build URL with filter parameters
+            const params = new URLSearchParams({
+                filter_type: filterType,
+                start: fetchInfo.startStr,
+                end: fetchInfo.endStr
+            });
+            
+            if (filterType === 'individual' && userFilter !== 'all') {
+                params.append('user_id', userFilter);
+            } else if (filterType === 'department' && departmentFilter !== 'all') {
+                params.append('department_id', departmentFilter);
+            }
+            
+            fetch(`/api/events?${params.toString()}`)
                 .then(response => response.json())
                 .then(data => {
                     allEvents = data;
@@ -72,36 +90,54 @@ document.addEventListener('DOMContentLoaded', function() {
     
     calendar.render();
     
-    // Set up user filter for admin users
-    const userFilter = document.getElementById('userFilter');
-    if (userFilter) {
-        userFilter.addEventListener('change', function() {
-            const userId = this.value;
-            if (userId === 'all') {
-                fetch('/api/events')
-                    .then(response => response.json())
-                    .then(data => {
-                        allEvents = data;
-                        calendar.removeAllEventSources();
-                        calendar.addEventSource(data);
-                        updateTeamMemberCounts(data);
-                    });
-            } else {
-                fetch(`/api/events?user_id=${userId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        allEvents = data;
-                        calendar.removeAllEventSources();
-                        calendar.addEventSource(data);
-                        updateTeamMemberCounts(data);
-                    });
-            }
-        });
-    }
+    // Set up new filtering system
+    setupCalendarFilters();
     
     // Initialize modal event handlers
     initializeModalHandlers();
 });
+
+function setupCalendarFilters() {
+    // Add event listeners for filter type radio buttons
+    document.querySelectorAll('input[name="filterType"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const filterType = this.value;
+            const userFilter = document.getElementById('userFilter');
+            const departmentFilter = document.getElementById('departmentFilter');
+            
+            // Hide all filter selects first
+            if (userFilter) userFilter.style.display = 'none';
+            if (departmentFilter) departmentFilter.style.display = 'none';
+            
+            // Show appropriate filter based on selection
+            if (filterType === 'individual' && userFilter) {
+                userFilter.style.display = 'block';
+            } else if (filterType === 'department' && departmentFilter) {
+                departmentFilter.style.display = 'block';
+            }
+            
+            // Refresh calendar
+            filterCalendar();
+        });
+    });
+    
+    // Add change event listeners to the select elements
+    const userFilter = document.getElementById('userFilter');
+    const departmentFilter = document.getElementById('departmentFilter');
+    
+    if (userFilter) {
+        userFilter.addEventListener('change', filterCalendar);
+    }
+    
+    if (departmentFilter) {
+        departmentFilter.addEventListener('change', filterCalendar);
+    }
+}
+
+function filterCalendar() {
+    // Simply refresh the calendar - the events function will handle the filtering
+    calendar.refetchEvents();
+}
 
 function initializeModalHandlers() {
     // Set up form submission

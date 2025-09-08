@@ -45,18 +45,39 @@ with app.app_context():
     import models
     db.create_all()
     
+    # Create default departments if they don't exist
+    from models import Department
+    departments_data = [
+        {'name': 'Engineering', 'description': 'Software development and technical teams'},
+        {'name': 'Marketing', 'description': 'Marketing and communications team'},
+        {'name': 'Sales', 'description': 'Sales and business development team'},
+        {'name': 'Human Resources', 'description': 'HR and people operations team'},
+        {'name': 'Operations', 'description': 'Operations and logistics team'}
+    ]
+    
+    for dept_data in departments_data:
+        existing_dept = Department.query.filter_by(name=dept_data['name']).first()
+        if not existing_dept:
+            dept = Department(name=dept_data['name'], description=dept_data['description'])
+            db.session.add(dept)
+    
+    db.session.commit()
+    
     # Create admin user if it doesn't exist
     from models import User
     from werkzeug.security import generate_password_hash
     
     admin = User.query.filter_by(email='admin@teamcal.com').first()
     if not admin:
+        # Get Engineering department for admin user
+        engineering_dept = Department.query.filter_by(name='Engineering').first()
         admin_user = User(
             username='admin',
             email='admin@teamcal.com',
             password_hash=generate_password_hash('admin123'),
             is_admin=True,
-            approval_status='approved'  # Admin is automatically approved
+            approval_status='approved',  # Admin is automatically approved
+            department_id=engineering_dept.id if engineering_dept else None
         )
         db.session.add(admin_user)
         db.session.commit()
