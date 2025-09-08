@@ -14,6 +14,7 @@ class User(UserMixin, db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     default_start_time = db.Column(db.String(5), default='09:00')  # Format: HH:MM
     default_end_time = db.Column(db.String(5), default='17:00')    # Format: HH:MM
+    timezone = db.Column(db.String(50), default='UTC')  # User's timezone (e.g., 'Asia/Kolkata', 'Europe/Berlin', 'Europe/London')
     created_at = db.Column(db.DateTime, default=func.now())
     
     # Relationships

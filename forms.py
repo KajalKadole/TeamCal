@@ -57,6 +57,12 @@ class ProfileForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     default_start_time = TimeField('Default Start Time')
     default_end_time = TimeField('Default End Time')
+    timezone = SelectField('Timezone', choices=[
+        ('UTC', 'UTC (Coordinated Universal Time)'),
+        ('Asia/Kolkata', 'India Standard Time (IST)'),
+        ('Europe/Berlin', 'Central European Time (CET)'),
+        ('Europe/London', 'Greenwich Mean Time (GMT)')
+    ], default='UTC')
     submit = SubmitField('Update Profile')
 
 class AddEmployeeForm(FlaskForm):

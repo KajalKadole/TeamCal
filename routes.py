@@ -146,6 +146,7 @@ def profile():
             current_user.default_start_time = form.default_start_time.data.strftime('%H:%M')
         if form.default_end_time.data:
             current_user.default_end_time = form.default_end_time.data.strftime('%H:%M')
+        current_user.timezone = form.timezone.data
         
         db.session.commit()
         flash('Profile updated successfully!', 'success')
@@ -159,6 +160,7 @@ def profile():
             form.default_start_time.data = datetime.strptime(current_user.default_start_time, '%H:%M').time()
         if current_user.default_end_time:
             form.default_end_time.data = datetime.strptime(current_user.default_end_time, '%H:%M').time()
+        form.timezone.data = current_user.timezone or 'UTC'
     
     return render_template('profile.html', form=form)
 
