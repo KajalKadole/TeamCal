@@ -167,15 +167,70 @@
     <div class="row">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Entries</h5>
-                    <div>
-                        <button class="btn btn-outline-primary btn-sm me-2" onclick="loadTimesheetEntries()">
-                            <i class="fas fa-refresh me-1"></i>Refresh
-                        </button>
-                        <button class="btn btn-primary btn-sm" onclick="downloadTimesheet()">
-                            <i class="fas fa-download me-1"></i>Download
-                        </button>
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Timesheet Entries</h5>
+                        <div>
+                            <button class="btn btn-outline-primary btn-sm me-2" onclick="loadTimesheetEntries()">
+                                <i class="fas fa-refresh me-1"></i>Refresh
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="downloadTimesheet()">
+                                <i class="fas fa-download me-1"></i>Download
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Date Range Selection -->
+                    <div class="row align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">From Date</label>
+                            <input type="date" id="startDatePicker" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">To Date</label>
+                            <input type="date" id="endDatePicker" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Quick Select</label>
+                            <select id="quickDateSelect" class="form-select">
+                                <option value="current_month">Current Month</option>
+                                <option value="last_month">Last Month</option>
+                                <option value="current_week">Current Week</option>
+                                <option value="last_week">Last Week</option>
+                                <option value="last_7_days">Last 7 Days</option>
+                                <option value="last_30_days">Last 30 Days</option>
+                                <option value="current_year">Current Year</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button id="filterTimesheetBtn" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Summary Statistics -->
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="d-flex justify-content-around bg-light rounded p-3">
+                                <div class="text-center">
+                                    <h5 id="totalHoursWorked" class="text-primary mb-0">0.0</h5>
+                                    <small>Total Hours</small>
+                                </div>
+                                <div class="text-center">
+                                    <h5 id="totalDaysWorked" class="text-success mb-0">0</h5>
+                                    <small>Days Worked</small>
+                                </div>
+                                <div class="text-center">
+                                    <h5 id="avgHoursPerDay" class="text-info mb-0">0.0</h5>
+                                    <small>Avg Hours/Day</small>
+                                </div>
+                                <div class="text-center">
+                                    <h5 id="totalBreakTime" class="text-warning mb-0">0</h5>
+                                    <small>Break Time (min)</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">

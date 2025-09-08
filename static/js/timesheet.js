@@ -321,13 +321,34 @@ function updateTeamStatusDisplay(teamStatus) {
 }
 
 function loadTimesheetEntries() {
-    const currentDate = new Date();
-    const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const startDatePicker = document.getElementById('startDatePicker');
+    const endDatePicker = document.getElementById('endDatePicker');
+    
+    let startDate, endDate;
+    
+    // Use date picker values if available, otherwise default to current month
+    if (startDatePicker && endDatePicker && startDatePicker.value && endDatePicker.value) {
+        startDate = startDatePicker.value;
+        endDate = endDatePicker.value;
+    } else {
+        // Default to current month
+        const currentDate = new Date();
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        startDate = startOfMonth.toISOString().split('T')[0];
+        endDate = endOfMonth.toISOString().split('T')[0];
+        
+        // Set default values in date pickers if they exist
+        if (startDatePicker && endDatePicker) {
+            startDatePicker.value = startDate;
+            endDatePicker.value = endDate;
+        }
+    }
     
     const params = new URLSearchParams({
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0]
+        start_date: startDate,
+        end_date: endDate
     });
     
     fetch(`/api/timesheet/entries?${params}`)
@@ -336,6 +357,7 @@ function loadTimesheetEntries() {
             if (data.success) {
                 updateTimesheetTable(data.entries);
                 calculateStats(data.entries);
+                updateSummaryStats(data.entries, startDate, endDate);
             } else {
                 showAlert('Error loading timesheet entries: ' + data.error, 'danger');
             }
@@ -542,3 +564,137 @@ function showAlert(message, type) {
         }
     }, 5000);
 }
+
+// Summary statistics calculation
+function updateSummaryStats(entries, startDate, endDate) {
+    let totalMinutes = 0;
+    let totalBreakMinutes = 0;
+    let daysWorked = new Set();
+    
+    entries.forEach(entry => {
+        if (entry.duration && entry.duration > 0) {
+            totalMinutes += entry.duration;
+            daysWorked.add(entry.date);
+        }
+        if (entry.break_duration) {
+            totalBreakMinutes += entry.break_duration;
+        }
+    });
+    
+    const totalHours = (totalMinutes / 60).toFixed(1);
+    const avgHoursPerDay = daysWorked.size > 0 ? (totalMinutes / 60 / daysWorked.size).toFixed(1) : 0;
+    
+    // Update summary display
+    const totalHoursEl = document.getElementById('totalHoursWorked');
+    const daysWorkedEl = document.getElementById('totalDaysWorked');
+    const avgHoursEl = document.getElementById('avgHoursPerDay');
+    const breakTimeEl = document.getElementById('totalBreakTime');
+    
+    if (totalHoursEl) totalHoursEl.textContent = totalHours;
+    if (daysWorkedEl) daysWorkedEl.textContent = daysWorked.size;
+    if (avgHoursEl) avgHoursEl.textContent = avgHoursPerDay;
+    if (breakTimeEl) breakTimeEl.textContent = totalBreakMinutes;
+}
+
+// Quick date selection handler
+function handleQuickDateSelect() {
+    const quickSelect = document.getElementById('quickDateSelect');
+    const startPicker = document.getElementById('startDatePicker');
+    const endPicker = document.getElementById('endDatePicker');
+    
+    if (!quickSelect || !startPicker || !endPicker) return;
+    
+    const today = new Date();
+    let startDate, endDate;
+    
+    switch (quickSelect.value) {
+        case 'current_month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            break;
+        case 'last_month':
+            startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+            break;
+        case 'current_week':
+            const dayOfWeek = today.getDay();
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - dayOfWeek);
+            endDate = new Date(today);
+            endDate.setDate(today.getDate() + (6 - dayOfWeek));
+            break;
+        case 'last_week':
+            const lastWeekStart = new Date(today);
+            lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+            startDate = lastWeekStart;
+            endDate = new Date(lastWeekStart);
+            endDate.setDate(lastWeekStart.getDate() + 6);
+            break;
+        case 'last_7_days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 7);
+            endDate = today;
+            break;
+        case 'last_30_days':
+            startDate = new Date(today);
+            startDate.setDate(today.getDate() - 30);
+            endDate = today;
+            break;
+        case 'current_year':
+            startDate = new Date(today.getFullYear(), 0, 1);
+            endDate = new Date(today.getFullYear(), 11, 31);
+            break;
+        default:
+            return;
+    }
+    
+    startPicker.value = startDate.toISOString().split('T')[0];
+    endPicker.value = endDate.toISOString().split('T')[0];
+}
+
+// Auto-checkout after 6 hours
+function checkAutoCheckout() {
+    if (!currentStatus || !currentStatus.is_clocked_in) return;
+    
+    const clockInTime = new Date(currentStatus.clock_in_time);
+    const now = new Date();
+    const hoursWorked = (now - clockInTime) / (1000 * 60 * 60); // Convert to hours
+    
+    // Auto checkout after 6 hours
+    if (hoursWorked >= 6) {
+        showAlert('You have been automatically clocked out after 6 hours of work time.', 'info');
+        clockOut();
+    }
+}
+
+// Initialize additional timesheet functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up event listeners for new controls
+    const quickSelect = document.getElementById('quickDateSelect');
+    const filterBtn = document.getElementById('filterTimesheetBtn');
+    
+    if (quickSelect) {
+        quickSelect.addEventListener('change', handleQuickDateSelect);
+    }
+    
+    if (filterBtn) {
+        filterBtn.addEventListener('click', loadTimesheetEntries);
+    }
+    
+    // Add auto-checkout check to existing refresh interval
+    const originalSetInterval = setInterval;
+    const intervals = [];
+    
+    // Override setInterval to track intervals
+    setInterval = function(func, delay) {
+        const id = originalSetInterval(function() {
+            func();
+            // Add auto-checkout check to timesheet status refresh
+            if (func.toString().includes('loadTimesheetStatus')) {
+                checkAutoCheckout();
+            }
+        }, delay);
+        intervals.push(id);
+        return id;
+    };
+});
