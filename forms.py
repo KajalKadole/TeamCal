@@ -11,7 +11,7 @@ class LoginForm(FlaskForm):
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=4, max=20)])
     email = StringField('Email', validators=[DataRequired(), Email()])
-    department_id = SelectField('Department', coerce=int, validators=[DataRequired()])
+    department_id = SelectField('Department', coerce=int)  # Removed DataRequired() to allow optional department
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     password2 = PasswordField('Repeat Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Register')
@@ -19,9 +19,7 @@ class RegistrationForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
         departments = Department.query.order_by(Department.name).all()
-        self.department_id.choices = [(dept.id, dept.name) for dept in departments]
-        if not self.department_id.choices:
-            self.department_id.choices = [(0, 'No departments available')]
+        self.department_id.choices = [(0, 'No Department')] + [(dept.id, dept.name) for dept in departments]
     
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
