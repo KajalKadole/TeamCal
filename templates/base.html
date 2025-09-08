@@ -58,6 +58,12 @@
                             <i class="fas fa-chart-line me-1"></i>Analytics
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_users') }}">
+                            <i class="fas fa-users me-1"></i>User Management
+                            <span class="badge bg-warning text-dark ms-1" id="pendingUsersBadge" style="display: none;">0</span>
+                        </a>
+                    </li>
                     {% endif %}
                     {% endif %}
                 </ul>
@@ -129,5 +135,32 @@
     
     <!-- Custom JS -->
     {% block scripts %}{% endblock %}
+    
+    <!-- Admin notification script -->
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <script>
+    // Load pending users count for admin notification
+    function loadPendingUsersCount() {
+        fetch('/api/admin/pending-users-count')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.count > 0) {
+                    const badge = document.getElementById('pendingUsersBadge');
+                    if (badge) {
+                        badge.textContent = data.count;
+                        badge.style.display = 'inline';
+                    }
+                }
+            })
+            .catch(error => console.error('Error loading pending users count:', error));
+    }
+    
+    // Load on page load
+    document.addEventListener('DOMContentLoaded', loadPendingUsersCount);
+    
+    // Refresh every 30 seconds
+    setInterval(loadPendingUsersCount, 30000);
+    </script>
+    {% endif %}
 </body>
 </html>

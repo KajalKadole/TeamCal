@@ -55,8 +55,71 @@ def register():
         db.session.commit()
         flash('Registration successful! Your account is pending admin approval. You will be able to log in once approved.', 'info')
         return redirect(url_for('login'))
+
+# Admin routes for user approval management
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    """Admin page to manage user approvals"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('calendar'))
     
-    return render_template('register.html', form=form)
+    # Get all users with their approval status
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/<int:user_id>/approve', methods=['POST'])
+@login_required
+def approve_user(user_id):
+    """Approve a pending user"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    if user.approval_status != 'pending':
+        return jsonify({'success': False, 'error': 'User is not pending approval'}), 400
+    
+    user.approval_status = 'approved'
+    user.approved_by = current_user.id
+    user.approved_at = datetime.now()
+    db.session.commit()
+    
+    return jsonify({
+        'success': True, 
+        'message': f'User {user.username} has been approved'
+    })
+
+@app.route('/admin/users/<int:user_id>/reject', methods=['POST'])
+@login_required 
+def reject_user(user_id):
+    """Reject a pending user"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    if user.approval_status != 'pending':
+        return jsonify({'success': False, 'error': 'User is not pending approval'}), 400
+    
+    user.approval_status = 'rejected' 
+    user.approved_by = current_user.id
+    user.approved_at = datetime.now()
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'User {user.username} has been rejected'
+    })
+
+@app.route('/api/admin/pending-users-count')
+@login_required
+def pending_users_count():
+    """Get count of pending users for admin notification"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied'}), 403
+    
+    count = User.query.filter_by(approval_status='pending').count()
+    return jsonify({'success': True, 'count': count})
 
 @app.route('/logout')
 @login_required

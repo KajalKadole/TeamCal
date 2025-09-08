@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Team Master Calendar{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-users me-2"></i>User Management</h2>
+                <div>
+                    <span class="badge bg-warning me-2" id="pendingCount">
+                        {{ users|selectattr('approval_status', 'equalto', 'pending')|list|length }} Pending
+                    </span>
+                    <span class="badge bg-success me-2">
+                        {{ users|selectattr('approval_status', 'equalto', 'approved')|list|length }} Approved
+                    </span>
+                    <span class="badge bg-danger">
+                        {{ users|selectattr('approval_status', 'equalto', 'rejected')|list|length }} Rejected
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pending Users Section -->
+            {% set pending_users = users|selectattr('approval_status', 'equalto', 'pending')|list %}
+            {% if pending_users %}
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Pending Approval ({{ pending_users|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Registered</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in pending_users %}
+                                <tr id="user-row-{{ user.id }}">
+                                    <td>
+                                        <i class="fas fa-user me-2"></i>{{ user.username }}
+                                        {% if user.is_admin %}
+                                        <span class="badge bg-primary ms-2">Admin</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm me-2" onclick="approveUser({{ user.id }}, '{{ user.username }}')">
+                                            <i class="fas fa-check me-1"></i>Approve
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" onclick="rejectUser({{ user.id }}, '{{ user.username }}')">
+                                            <i class="fas fa-times me-1"></i>Reject
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- All Users Section -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>All Users</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Registered</th>
+                                    <th>Approved By</th>
+                                    <th>Approved Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-user me-2"></i>{{ user.username }}
+                                        {% if user.is_admin %}
+                                        <span class="badge bg-primary ms-2">Admin</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.approval_status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                        {% elif user.approval_status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                        {% elif user.approval_status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if user.approved_by %}
+                                        {{ user.approved_by }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.approved_at %}
+                                        {{ user.approved_at.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function approveUser(userId, username) {
+    if (!confirm(`Are you sure you want to approve user "${username}"?`)) return;
+    
+    fetch(`/admin/users/${userId}/approve`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            // Remove from pending table and reload page
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Failed to approve user', 'danger');
+    });
+}
+
+function rejectUser(userId, username) {
+    if (!confirm(`Are you sure you want to reject user "${username}"?`)) return;
+    
+    fetch(`/admin/users/${userId}/reject`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            // Remove from pending table and reload page
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert('Error: ' + data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Failed to reject user', 'danger');
+    });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 3 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}
