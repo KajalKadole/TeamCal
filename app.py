@@ -55,7 +55,8 @@ with app.app_context():
             username='admin',
             email='admin@teamcal.com',
             password_hash=generate_password_hash('admin123'),
-            is_admin=True
+            is_admin=True,
+            approval_status='approved'  # Admin is automatically approved
         )
         db.session.add(admin_user)
         db.session.commit()

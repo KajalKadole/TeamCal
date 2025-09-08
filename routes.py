@@ -22,10 +22,18 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and check_password_hash(user.password_hash, form.password.data):
-            login_user(user)
-            next_page = request.args.get('next')
-            flash(f'Welcome back, {user.username}!', 'success')
-            return redirect(next_page) if next_page else redirect(url_for('calendar'))
+            # Check approval status
+            if user.approval_status == 'pending':
+                flash('Your account is pending admin approval. Please wait for approval before logging in.', 'warning')
+                return render_template('login.html', form=form)
+            elif user.approval_status == 'rejected':
+                flash('Your account has been rejected. Please contact an administrator.', 'danger')
+                return render_template('login.html', form=form)
+            elif user.approval_status == 'approved':
+                login_user(user)
+                next_page = request.args.get('next')
+                flash(f'Welcome back, {user.username}!', 'success')
+                return redirect(next_page) if next_page else redirect(url_for('calendar'))
         flash('Invalid email or password.', 'danger')
     
     return render_template('login.html', form=form)
@@ -40,11 +48,12 @@ def register():
         user = User(
             username=form.username.data,
             email=form.email.data,
-            password_hash=generate_password_hash(form.password.data)
+            password_hash=generate_password_hash(form.password.data),
+            approval_status='pending'  # New users need approval
         )
         db.session.add(user)
         db.session.commit()
-        flash('Registration successful! You can now log in.', 'success')
+        flash('Registration successful! Your account is pending admin approval. You will be able to log in once approved.', 'info')
         return redirect(url_for('login'))
     
     return render_template('register.html', form=form)

@@ -9,6 +9,9 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    approval_status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Admin who approved
+    approved_at = db.Column(db.DateTime, nullable=True)
     default_start_time = db.Column(db.String(5), default='09:00')  # Format: HH:MM
     default_end_time = db.Column(db.String(5), default='17:00')    # Format: HH:MM
     created_at = db.Column(db.DateTime, default=func.now())
