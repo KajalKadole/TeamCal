@@ -638,6 +638,9 @@ def end_break():
 def get_timesheet_status():
     """Get current timesheet status for user"""
     try:
+        # Check for auto-checkout first
+        check_and_perform_auto_checkout(current_user.id)
+        
         # Check for active entry
         active_entry = TimesheetEntry.query.filter_by(
             user_id=current_user.id,
@@ -652,7 +655,7 @@ def get_timesheet_status():
                 'is_clocked_in': True,
                 'entry_id': active_entry.id,
                 'clock_in': active_entry.clock_in.isoformat(),
-                'current_duration': (datetime.now() - active_entry.clock_in).total_seconds() / 60,
+                'current_duration': (datetime.utcnow() - active_entry.clock_in).total_seconds() / 60,
                 'location': active_entry.location,
                 'current_task': user_status.current_task if user_status else '',
                 'status_message': user_status.status_message if user_status else 'Available'
@@ -666,6 +669,48 @@ def get_timesheet_status():
             })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+def check_and_perform_auto_checkout(user_id):
+    """Check if a user should be automatically clocked out after 6 hours"""
+    try:
+        # Find active timesheet entry
+        active_entry = TimesheetEntry.query.filter_by(
+            user_id=user_id,
+            clock_out=None
+        ).first()
+        
+        if not active_entry:
+            return False
+        
+        # Calculate hours worked
+        utc_now = datetime.utcnow()
+        hours_worked = (utc_now - active_entry.clock_in).total_seconds() / 3600
+        
+        # Auto-checkout after 6 hours
+        if hours_worked >= 6:
+            # Perform automatic checkout
+            active_entry.clock_out = utc_now
+            active_entry.duration = int((utc_now - active_entry.clock_in).total_seconds() / 60)
+            active_entry.is_active = False
+            existing_notes = active_entry.notes or ''
+            active_entry.notes = existing_notes + ' [Auto-checkout after 6 hours]' if existing_notes else '[Auto-checkout after 6 hours]'
+            
+            # Update user status
+            user_status = UserStatus.query.filter_by(user_id=user_id).first()
+            if user_status:
+                user_status.is_working = False
+                user_status.current_timesheet_id = None
+                user_status.status_message = 'Offline'
+                user_status.last_activity = utc_now
+            
+            db.session.commit()
+            return True
+            
+        return False
+        
+    except Exception as e:
+        print(f"Error in auto-checkout for user {user_id}: {str(e)}")
+        return False
 
 @app.route('/api/timesheet/update-status', methods=['POST'])
 @login_required
@@ -746,8 +791,12 @@ def get_team_status():
         # Get all users with their status and active timesheets in bulk
         users_query = db.session.query(User, UserStatus).outerjoin(UserStatus).all()
         
-        # Bulk fetch active timesheet entries to avoid N+1 queries
+        # Check for auto-checkout for all users before fetching status
         user_ids = [user.id for user, _ in users_query]
+        for user_id in user_ids:
+            check_and_perform_auto_checkout(user_id)
+        
+        # Bulk fetch active timesheet entries to avoid N+1 queries (after auto-checkout checks)
         active_entries = db.session.query(TimesheetEntry).filter(
             TimesheetEntry.user_id.in_(user_ids),
             TimesheetEntry.clock_out.is_(None)
