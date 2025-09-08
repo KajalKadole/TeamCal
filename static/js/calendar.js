@@ -247,21 +247,120 @@ function addEvent() {
     });
 }
 
-// Multi-Day Availability Functions
-function showMultiDayModal() {
-    const modal = new bootstrap.Modal(document.getElementById('multiDayModal'));
+// Unified Availability Modal Functions
+function showUnifiedAvailabilityModal() {
+    const modal = new bootstrap.Modal(document.getElementById('unifiedAvailabilityModal'));
     
-    // Set default dates (today and 2 weeks from today)
+    // Set default date for single day (today)
     const today = new Date();
-    const twoWeeksFromToday = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+    document.getElementById('singleEventDate').value = today.toISOString().split('T')[0];
     
+    // Set default dates for multi-day (today to 2 weeks from today)
+    const twoWeeksFromToday = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
     document.getElementById('multiStartDate').value = today.toISOString().split('T')[0];
     document.getElementById('multiEndDate').value = twoWeeksFromToday.toISOString().split('T')[0];
     
     // Clear previous preview
     clearPreview();
     
+    // Reset to single day tab
+    const singleDayTab = document.getElementById('single-day-tab');
+    const singleDayPane = document.getElementById('single-day-pane');
+    const multiDayTab = document.getElementById('multi-day-tab');
+    const multiDayPane = document.getElementById('multi-day-pane');
+    
+    singleDayTab.classList.add('active');
+    multiDayTab.classList.remove('active');
+    singleDayPane.classList.add('show', 'active');
+    multiDayPane.classList.remove('show', 'active');
+    
     modal.show();
+}
+
+function createAvailability() {
+    // Check which tab is active
+    const multiDayPane = document.getElementById('multi-day-pane');
+    const isMultiDay = multiDayPane.classList.contains('active');
+    
+    if (isMultiDay) {
+        createMultiDayAvailability();
+    } else {
+        createSingleDayAvailability();
+    }
+}
+
+function createSingleDayAvailability() {
+    const date = document.getElementById('singleEventDate').value;
+    const startTime = getTimeFrom12HourSingle('singleStart');
+    const endTime = getTimeFrom12HourSingle('singleEnd');
+    
+    if (!date || !startTime || !endTime) {
+        showAlert('Please fill in all required fields.', 'warning');
+        return;
+    }
+    
+    if (startTime >= endTime) {
+        showAlert('End time must be after start time.', 'warning');
+        return;
+    }
+    
+    // Prepare data for submission
+    const eventData = {
+        date: date,
+        start_time: startTime,
+        end_time: endTime,
+        type: 'availability'
+    };
+    
+    // Submit to backend
+    fetch('/api/availability', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Availability added successfully!', 'success');
+            
+            // Refresh calendar
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    allEvents = events;
+                    updateTeamMemberCounts(events);
+                    calendar.refetchEvents();
+                });
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('unifiedAvailabilityModal')).hide();
+        } else {
+            showAlert(`Error: ${data.error}`, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('An error occurred while adding availability.', 'danger');
+    });
+}
+
+function getTimeFrom12HourSingle(prefix) {
+    const hour = parseInt(document.getElementById(`${prefix}Hour`).value);
+    const minute = document.getElementById(`${prefix}Minute`).value;
+    const ampm = document.getElementById(`${prefix}AmPm`).value;
+    
+    if (!hour || !minute || !ampm) return null;
+    
+    let hour24 = hour;
+    if (ampm === 'PM' && hour !== 12) {
+        hour24 += 12;
+    } else if (ampm === 'AM' && hour === 12) {
+        hour24 = 0;
+    }
+    
+    return `${hour24.toString().padStart(2, '0')}:${minute}`;
 }
 
 function generatePreview() {
@@ -431,7 +530,7 @@ function createMultiDayAvailability() {
                 });
             
             // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('multiDayModal')).hide();
+            bootstrap.Modal.getInstance(document.getElementById('unifiedAvailabilityModal')).hide();
         } else {
             showAlert(`Error: ${data.error}`, 'danger');
         }

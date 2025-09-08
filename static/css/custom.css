@@ -1116,6 +1116,44 @@ input[type="date"] {
     color-scheme: dark;
 }
 
+/* Unified Availability Modal Tabs */
+.nav-pills .nav-link {
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.nav-pills .nav-link:not(.active) {
+    background: var(--bs-secondary-bg);
+    border: 1px solid var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+.nav-pills .nav-link:not(.active):hover {
+    background: var(--bs-primary);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.nav-pills .nav-link.active {
+    background: var(--bs-primary);
+    color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+#single-day-pane {
+    padding-top: 2rem;
+}
+
+#multi-day-pane .timeline-container {
+    margin-top: 2rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .hero-title {
