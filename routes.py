@@ -1475,9 +1475,9 @@ def availability_analytics():
         # Format availability data
         availability_data = []
         for slot in availability_slots:
-            # Convert UTC times to user's timezone for display
-            user_start_time = convert_utc_to_user_timezone(slot.start_time, current_user.timezone) if slot.start_time else None
-            user_end_time = convert_utc_to_user_timezone(slot.end_time, current_user.timezone) if slot.end_time else None
+            # Note: start_time and end_time are time objects, not datetime, so no timezone conversion needed
+            user_start_time = slot.start_time
+            user_end_time = slot.end_time
             
             availability_data.append({
                 'id': slot.id,
@@ -1493,8 +1493,9 @@ def availability_analytics():
         
         # Format busy data
         for slot in busy_slots:
-            user_start_time = convert_utc_to_user_timezone(slot.start_time, current_user.timezone) if slot.start_time else None
-            user_end_time = convert_utc_to_user_timezone(slot.end_time, current_user.timezone) if slot.end_time else None
+            # Note: start_time and end_time are time objects, not datetime, so no timezone conversion needed
+            user_start_time = slot.start_time
+            user_end_time = slot.end_time
             
             availability_data.append({
                 'id': slot.id,
