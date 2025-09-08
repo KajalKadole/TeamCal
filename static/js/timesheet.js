@@ -498,7 +498,7 @@ function startBreak() {
 }
 
 function downloadCSV(entries) {
-    const headers = ['Date (YYYY-MM-DD)', 'Day of Week', 'Clock In Time', 'Clock Out Time', 'Work Duration (Hours)', 'Break Duration (Minutes)', 'Total Time (Hours)', 'Location', 'Status', 'Notes'];
+    const headers = ['Date (YYYY-MM-DD)', 'Day of Week', 'Employee', 'Clock In Time', 'Clock Out Time', 'Work Duration (Hours)', 'Break Duration (Minutes)', 'Total Time (Hours)', 'Location', 'Status', 'Notes'];
     const csvContent = [
         headers.join(','),
         ...entries.map(entry => {
@@ -506,24 +506,28 @@ function downloadCSV(entries) {
             const clockInDate = entry.clock_in ? new Date(entry.clock_in) : null;
             const clockOutDate = entry.clock_out ? new Date(entry.clock_out) : null;
             
+            // Safe time formatting
+            const clockInStr = clockInDate ? clockInDate.toLocaleTimeString('en-US', { 
+                hour12: true, 
+                hour: '2-digit', 
+                minute: '2-digit'
+            }) : 'No Clock In';
+            
+            const clockOutStr = clockOutDate ? clockOutDate.toLocaleTimeString('en-US', { 
+                hour12: true, 
+                hour: '2-digit', 
+                minute: '2-digit'
+            }) : (entry.is_active ? 'Still Active' : 'No Clock Out');
+            
             return [
                 entryDate.toISOString().split('T')[0], // Date in YYYY-MM-DD format
                 entryDate.toLocaleDateString('en-US', { weekday: 'long' }), // Day of week
-                clockInDate ? clockInDate.toLocaleTimeString('en-US', { 
-                    hour12: true, 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit'
-                }) : '',
-                clockOutDate ? clockOutDate.toLocaleTimeString('en-US', { 
-                    hour12: true, 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit'
-                }) : 'Still Active',
-                entry.duration > 0 ? (entry.duration / 60).toFixed(2) : '0',
+                entry.username || 'Unknown', // Employee name
+                clockInStr,
+                clockOutStr,
+                entry.duration > 0 ? (entry.duration / 60).toFixed(2) : '0.00',
                 entry.break_duration || 0,
-                entry.duration > 0 ? ((entry.duration + (entry.break_duration || 0)) / 60).toFixed(2) : '0',
+                entry.duration > 0 ? ((entry.duration + (entry.break_duration || 0)) / 60).toFixed(2) : '0.00',
                 entry.location || 'Office',
                 entry.is_active ? 'Active' : 'Completed',
                 entry.notes || ''
@@ -536,7 +540,7 @@ function downloadCSV(entries) {
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `timesheet_${new Date().getFullYear()}_${new Date().getMonth() + 1}.csv`;
+    a.download = `timesheet_${new Date().getFullYear()}_${String(new Date().getMonth() + 1).padStart(2, '0')}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

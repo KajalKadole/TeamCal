@@ -1302,16 +1302,20 @@ def download_timesheet():
             status = 'Active' if entry.is_active else 'Completed'
             
             # Convert times to user's timezone for display
-            user_clock_in = convert_utc_to_user_timezone(entry.clock_in, current_user.timezone)
+            user_clock_in = convert_utc_to_user_timezone(entry.clock_in, current_user.timezone) if entry.clock_in else None
             user_clock_out = convert_utc_to_user_timezone(entry.clock_out, current_user.timezone) if entry.clock_out else None
             user_date = user_clock_in.date() if user_clock_in else entry.date
+            
+            # Format times safely
+            clock_in_str = user_clock_in.strftime('%I:%M:%S %p') if user_clock_in else 'No Clock In'
+            clock_out_str = user_clock_out.strftime('%I:%M:%S %p') if user_clock_out else ('Still Active' if entry.is_active else 'No Clock Out')
             
             writer.writerow([
                 user_date.strftime('%Y-%m-%d'),  # Date in user's timezone
                 user_date.strftime('%A'),       # Day of week in user's timezone
                 entry.user.username,
-                user_clock_in.strftime('%I:%M:%S %p'),  # 12-hour format with AM/PM in user's timezone
-                user_clock_out.strftime('%I:%M:%S %p') if user_clock_out else 'Still Active',
+                clock_in_str,  # Safe clock in time
+                clock_out_str,  # Safe clock out time
                 f"{work_hours:.2f}",
                 break_minutes,
                 f"{total_hours:.2f}",
