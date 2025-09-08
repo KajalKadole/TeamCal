@@ -1,6 +1,6 @@
 # Overview
 
-Team Master Calendar is a Flask-based web application designed to streamline team scheduling and availability management. The system allows employees to set their availability, mark busy periods, request leave days, and enables administrators to view a consolidated master calendar of all team members. Built with a focus on simplicity and efficiency, it provides an intuitive interface for managing team schedules and coordinating work assignments.
+Ziqsy Team Calendar is a Flask-based web application designed to streamline team scheduling and availability management. The system allows employees to set their availability, mark busy periods, request leave days, and enables administrators to view a consolidated master calendar of all team members. Built with a focus on simplicity and efficiency, it provides an intuitive interface for managing team schedules and coordinating work assignments.
 
 # Recent Changes
 
