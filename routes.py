@@ -758,16 +758,22 @@ def get_team_status():
         for user, status in users_query:
             active_entry = active_entries_by_user.get(user.id)
             
+            # Determine status message safely
+            if active_entry:
+                status_msg = (status.status_message if status else None) or 'Working'
+            else:
+                status_msg = (status.status_message if status else None) or 'Offline'
+            
             team_status.append({
                 'user_id': user.id,
                 'username': user.username,
                 'is_working': status.is_working if status else False,
                 'is_clocked_in': active_entry is not None,
-                'status_message': status.status_message or 'Working' if active_entry else status.status_message or 'Offline',
+                'status_message': status_msg,
                 'current_task': status.current_task if status else '',
                 'last_activity': status.last_activity.isoformat() if status and status.last_activity else None,
                 'clock_in_time': active_entry.clock_in.isoformat() if active_entry else None,
-                'current_duration': (datetime.now() - active_entry.clock_in).total_seconds() / 60 if active_entry else 0
+                'current_duration': (datetime.utcnow() - active_entry.clock_in).total_seconds() / 60 if active_entry else 0
             })
         
         return jsonify({'success': True, 'team_status': team_status})
@@ -803,7 +809,17 @@ def get_public_team_status():
                     'is_clocked_in': True,
                     'status_message': status.status_message or 'Working',
                     'current_task': status.current_task if status.current_task else '',
-                    'current_duration': (datetime.now() - active_entry.clock_in).total_seconds() / 60
+                    'current_duration': (datetime.utcnow() - active_entry.clock_in).total_seconds() / 60
+                })
+            elif active_entry:  # User is clocked in but no status record
+                public_status.append({
+                    'user_id': user.id,
+                    'username': user.username,
+                    'is_working': True,
+                    'is_clocked_in': True,
+                    'status_message': 'Working',
+                    'current_task': '',
+                    'current_duration': (datetime.utcnow() - active_entry.clock_in).total_seconds() / 60
                 })
         
         return jsonify({'success': True, 'public_status': public_status})
