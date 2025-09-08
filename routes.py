@@ -1064,13 +1064,18 @@ def get_timesheet_entries():
         
         entries_data = []
         for entry in entries:
+            # Convert UTC times to user's timezone for display
+            user_clock_in = convert_utc_to_user_timezone(entry.clock_in, current_user.timezone) if entry.clock_in else None
+            user_clock_out = convert_utc_to_user_timezone(entry.clock_out, current_user.timezone) if entry.clock_out else None
+            user_date = user_clock_in.date() if user_clock_in else entry.date
+            
             entries_data.append({
                 'id': entry.id,
                 'user_id': entry.user_id,
                 'username': entry.user.username,
-                'date': entry.date.isoformat(),
-                'clock_in': entry.clock_in.isoformat(),
-                'clock_out': entry.clock_out.isoformat() if entry.clock_out else None,
+                'date': user_date.isoformat(),
+                'clock_in': user_clock_in.isoformat() if user_clock_in else None,
+                'clock_out': user_clock_out.isoformat() if user_clock_out else None,
                 'duration': entry.duration,
                 'break_duration': entry.break_duration,
                 'location': entry.location,
