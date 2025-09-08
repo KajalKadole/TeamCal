@@ -236,3 +236,275 @@
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
+/* Login Page Styling */
+.login-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+}
+
+.login-hero {
+    padding: 3rem 0 2rem;
+    text-align: center;
+}
+
+.hero-content {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.hero-icon {
+    font-size: 4rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 1rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+.hero-title {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hero-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+    margin-bottom: 0;
+    font-weight: 300;
+}
+
+.login-form-section {
+    flex: 1;
+    padding: 2rem 0;
+    display: flex;
+    align-items: center;
+}
+
+.login-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    animation: slideInUp 0.6s ease-out 0.2s both;
+    overflow: hidden;
+}
+
+.login-card .card-header {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 2rem 2rem 1.5rem;
+    border-radius: 20px 20px 0 0;
+}
+
+.login-card .card-body {
+    padding: 2rem;
+}
+
+.login-card .card-footer {
+    background: rgba(248, 249, 250, 0.8);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1.5rem 2rem;
+    border-radius: 0 0 20px 20px;
+}
+
+.form-floating {
+    position: relative;
+}
+
+.form-floating > .form-control {
+    height: 3.5rem;
+    border-radius: 12px;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-floating > .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    background: white;
+}
+
+.form-floating > label {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.login-btn {
+    height: 3.5rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+.demo-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    color: white;
+    animation: slideInUp 0.6s ease-out 0.4s both;
+}
+
+.demo-card .card-body {
+    padding: 1.5rem;
+}
+
+.credential-item {
+    margin-bottom: 0.5rem;
+}
+
+.credential-details {
+    margin-top: 0.5rem;
+}
+
+.credential-details .badge {
+    margin: 0.2rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+}
+
+.features-section {
+    padding: 3rem 0 4rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+}
+
+.feature-item {
+    text-align: center;
+    color: white;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.feature-item:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.feature-item:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.feature-item h6 {
+    color: white;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.feature-item p {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .login-card .card-header,
+    .login-card .card-body,
+    .login-card .card-footer {
+        padding: 1.5rem;
+    }
+    
+    .features-section {
+        padding: 2rem 0;
+    }
+    
+    .feature-item {
+        margin-bottom: 2rem;
+    }
+}
+
+/* Dark theme adjustments for login page */
+[data-bs-theme="dark"] .login-card {
+    background: rgba(33, 37, 41, 0.95);
+    color: white;
+}
+
+[data-bs-theme="dark"] .login-card .card-header {
+    background: linear-gradient(135deg, rgba(52, 58, 64, 0.9), rgba(52, 58, 64, 0.7));
+}
+
+[data-bs-theme="dark"] .login-card .card-footer {
+    background: rgba(52, 58, 64, 0.8);
+}
+
+[data-bs-theme="dark"] .form-floating > .form-control {
+    background: rgba(52, 58, 64, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+[data-bs-theme="dark"] .form-floating > .form-control:focus {
+    background: rgba(52, 58, 64, 1);
+    border-color: #667eea;
+}
+
+[data-bs-theme="dark"] .form-floating > label {
+    color: rgba(255, 255, 255, 0.7);
+}
