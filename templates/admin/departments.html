@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Department Management - Ziqsy Team Calendar{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-building me-2"></i>Department Management
+                </h5>
+                <a href="{{ url_for('add_department') }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus me-1"></i>Add Department
+                </a>
+            </div>
+            <div class="card-body">
+                {% if departments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Department Name</th>
+                                <th>Description</th>
+                                <th>Employees</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for department in departments %}
+                            <tr>
+                                <td>
+                                    <strong>{{ department.name }}</strong>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ department.description or 'No description' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ department.users|length }} employees</span>
+                                    {% if department.users %}
+                                    <div class="mt-1">
+                                        {% for user in department.users %}
+                                        <span class="badge bg-secondary me-1">{{ user.username }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('edit_department', dept_id=department.id) }}" 
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-warning btn-sm" 
+                                                onclick="showManageEmployees({{ department.id }}, '{{ department.name }}')">
+                                            <i class="fas fa-users"></i>
+                                        </button>
+                                        <button class="btn btn-danger btn-sm" 
+                                                onclick="deleteDepartment({{ department.id }}, '{{ department.name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-building fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No departments created yet</h5>
+                    <p class="text-muted">Create your first department to organize your team.</p>
+                    <a href="{{ url_for('add_department') }}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Add Department
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Employees Modal -->
+<div class="modal fade" id="manageEmployeesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-users me-2"></i>Manage Employees - <span id="departmentName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="manageEmployeesForm">
+                    <input type="hidden" id="deptId" name="dept_id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Available Employees</h6>
+                            <div id="availableEmployees" class="border rounded p-3" style="height: 300px; overflow-y: auto;">
+                                <!-- Available employees will be loaded here -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Assigned Employees</h6>
+                            <div id="assignedEmployees" class="border rounded p-3" style="height: 300px; overflow-y: auto;">
+                                <!-- Assigned employees will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="saveEmployeeAssignments()">
+                    <i class="fas fa-save me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentDeptId = null;
+
+function showManageEmployees(deptId, deptName) {
+    currentDeptId = deptId;
+    document.getElementById('deptId').value = deptId;
+    document.getElementById('departmentName').textContent = deptName;
+    
+    // Load employees
+    fetch(`/admin/departments/${deptId}/employees`)
+        .then(response => response.json())
+        .then(data => {
+            populateEmployeeLists(data);
+            const modal = new bootstrap.Modal(document.getElementById('manageEmployeesModal'));
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error loading employees', 'danger');
+        });
+}
+
+function populateEmployeeLists(data) {
+    const availableContainer = document.getElementById('availableEmployees');
+    const assignedContainer = document.getElementById('assignedEmployees');
+    
+    // Clear containers
+    availableContainer.innerHTML = '';
+    assignedContainer.innerHTML = '';
+    
+    // Populate available employees
+    data.available.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'p-2 mb-2 bg-light rounded cursor-pointer';
+        div.style.cursor = 'pointer';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <span>${user.username}</span>
+                <button class="btn btn-sm btn-success" onclick="assignEmployee(${user.id}, '${user.username}')">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        `;
+        availableContainer.appendChild(div);
+    });
+    
+    // Populate assigned employees
+    data.assigned.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'p-2 mb-2 bg-info text-white rounded';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <span>${user.username}</span>
+                <button class="btn btn-sm btn-danger" onclick="unassignEmployee(${user.id}, '${user.username}')">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+        `;
+        assignedContainer.appendChild(div);
+    });
+}
+
+function assignEmployee(userId, username) {
+    fetch(`/admin/departments/${currentDeptId}/assign/${userId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`${username} assigned successfully`, 'success');
+            showManageEmployees(currentDeptId, document.getElementById('departmentName').textContent);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    });
+}
+
+function unassignEmployee(userId, username) {
+    fetch(`/admin/departments/${currentDeptId}/unassign/${userId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`${username} unassigned successfully`, 'success');
+            showManageEmployees(currentDeptId, document.getElementById('departmentName').textContent);
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    });
+}
+
+function deleteDepartment(deptId, deptName) {
+    if (confirm(`Are you sure you want to delete the "${deptName}" department? This action cannot be undone.`)) {
+        fetch(`/admin/departments/${deptId}/delete`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                location.reload();
+            } else {
+                showAlert(data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error deleting department', 'danger');
+        });
+    }
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

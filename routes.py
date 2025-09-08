@@ -100,6 +100,102 @@ def add_department():
     
     return render_template('admin/add_department.html', form=form)
 
+@app.route('/admin/departments/<int:dept_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_department(dept_id):
+    """Edit a department"""
+    if not current_user.is_admin:
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('calendar'))
+    
+    department = Department.query.get_or_404(dept_id)
+    form = DepartmentForm(obj=department)
+    
+    if form.validate_on_submit():
+        # Check if name changed and if new name already exists
+        if form.name.data != department.name:
+            existing_dept = Department.query.filter_by(name=form.name.data).first()
+            if existing_dept:
+                flash('A department with this name already exists.', 'danger')
+                return render_template('admin/edit_department.html', form=form, department=department)
+        
+        department.name = form.name.data
+        department.description = form.description.data
+        db.session.commit()
+        flash(f'Department "{department.name}" updated successfully!', 'success')
+        return redirect(url_for('admin_departments'))
+    
+    return render_template('admin/edit_department.html', form=form, department=department)
+
+@app.route('/admin/departments/<int:dept_id>/employees')
+@login_required
+def get_department_employees(dept_id):
+    """Get available and assigned employees for a department"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    department = Department.query.get_or_404(dept_id)
+    
+    # Get all approved users
+    all_users = User.query.filter_by(approval_status='approved').all()
+    
+    assigned = []
+    available = []
+    
+    for user in all_users:
+        if user.department_id == dept_id:
+            assigned.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            })
+        else:
+            available.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email
+            })
+    
+    return jsonify({
+        'assigned': assigned,
+        'available': available
+    })
+
+@app.route('/admin/departments/<int:dept_id>/assign/<int:user_id>', methods=['POST'])
+@login_required
+def assign_employee_to_department(dept_id, user_id):
+    """Assign an employee to a department"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    department = Department.query.get_or_404(dept_id)
+    user = User.query.get_or_404(user_id)
+    
+    user.department_id = dept_id
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'{user.username} assigned to {department.name}'
+    })
+
+@app.route('/admin/departments/<int:dept_id>/unassign/<int:user_id>', methods=['POST'])
+@login_required
+def unassign_employee_from_department(dept_id, user_id):
+    """Unassign an employee from a department"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    user.department_id = None
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'{user.username} unassigned from department'
+    })
+
 @app.route('/admin/departments/<int:dept_id>/delete', methods=['POST'])
 @login_required
 def delete_department(dept_id):
