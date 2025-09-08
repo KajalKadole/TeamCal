@@ -286,6 +286,47 @@ def pending_users_count():
     count = User.query.filter_by(approval_status='pending').count()
     return jsonify({'success': True, 'count': count})
 
+@app.route('/admin/users/<int:user_id>/department', methods=['POST'])
+@login_required
+def update_user_department(user_id):
+    """Update a user's department assignment"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    data = request.get_json()
+    user = User.query.get_or_404(user_id)
+    
+    department_id = data.get('department_id')
+    if department_id:
+        # Verify department exists
+        department = Department.query.get(department_id)
+        if not department:
+            return jsonify({'error': 'Department not found'}), 404
+        user.department_id = department_id
+        message = f'{user.username} assigned to {department.name}'
+    else:
+        user.department_id = None
+        message = f'{user.username} removed from department'
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': message
+    })
+
+@app.route('/api/departments')
+@login_required
+def get_departments_api():
+    """Get all departments for API use"""
+    if not current_user.is_admin:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    departments = Department.query.order_by(Department.name).all()
+    return jsonify({
+        'departments': [{'id': d.id, 'name': d.name, 'description': d.description} for d in departments]
+    })
+
 @app.route('/logout')
 @login_required
 def logout():
