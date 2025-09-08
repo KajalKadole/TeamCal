@@ -208,8 +208,23 @@ function loadUserProductivity(days) {
                 updateTopPerformersTable(data.data);
                 updateProductivityInsights(data.data);
             } else {
+                console.error('Failed to load user productivity data:', data.error);
+                // Update table with error state
+                const tbody = document.querySelector('#topPerformersTable tbody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Failed to load data</td></tr>';
+                }
                 throw new Error(data.error);
             }
+        })
+        .catch(error => {
+            console.error('Error loading user productivity data:', error);
+            // Update table with error state
+            const tbody = document.querySelector('#topPerformersTable tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Error loading data</td></tr>';
+            }
+            throw error;
         });
 }
 
