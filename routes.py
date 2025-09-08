@@ -1488,7 +1488,7 @@ def availability_analytics():
                 'start_time': user_start_time.strftime('%H:%M') if user_start_time else None,
                 'end_time': user_end_time.strftime('%H:%M') if user_end_time else None,
                 'status': 'Available',
-                'notes': slot.notes
+                'notes': ''  # AvailabilitySlot doesn't have a notes field
             })
         
         # Format busy data
@@ -1506,7 +1506,7 @@ def availability_analytics():
                 'start_time': user_start_time.strftime('%H:%M') if user_start_time else None,
                 'end_time': user_end_time.strftime('%H:%M') if user_end_time else None,
                 'status': 'Busy',
-                'notes': slot.notes
+                'notes': slot.description or ''  # BusySlot uses description field instead of notes
             })
         
         # Format leave data
@@ -1520,7 +1520,7 @@ def availability_analytics():
                 'start_time': 'All Day',
                 'end_time': 'All Day',
                 'status': 'Leave',
-                'notes': leave.reason
+                'notes': leave.notes or ''
             })
         
         # Sort by date
