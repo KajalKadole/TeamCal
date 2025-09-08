@@ -294,6 +294,78 @@ def add_availability():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
+@app.route('/api/multi-availability', methods=['POST'])
+@login_required
+def add_multi_availability():
+    data = request.get_json()
+    
+    try:
+        dates = data.get('dates', [])
+        start_time_str = data.get('start_time')
+        end_time_str = data.get('end_time')
+        
+        if not dates or not start_time_str or not end_time_str:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+        
+        # Parse times
+        start_time = datetime.strptime(start_time_str, '%H:%M').time()
+        end_time = datetime.strptime(end_time_str, '%H:%M').time()
+        
+        # Validate time range
+        if start_time >= end_time:
+            return jsonify({'success': False, 'error': 'End time must be after start time'}), 400
+        
+        # Create availability slots for all dates
+        slots_created = 0
+        errors = []
+        
+        for date_str in dates:
+            try:
+                # Check if availability already exists for this date and time
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                existing = AvailabilitySlot.query.filter_by(
+                    user_id=current_user.id,
+                    date=date_obj,
+                    start_time=start_time,
+                    end_time=end_time
+                ).first()
+                
+                if not existing:
+                    slot = AvailabilitySlot(
+                        user_id=current_user.id,
+                        date=date_obj,
+                        start_time=start_time,
+                        end_time=end_time,
+                        recurring=False
+                    )
+                    db.session.add(slot)
+                    slots_created += 1
+                else:
+                    errors.append(f"Availability already exists for {date_str}")
+                    
+            except Exception as e:
+                errors.append(f"Error creating slot for {date_str}: {str(e)}")
+        
+        # Commit all changes
+        if slots_created > 0:
+            db.session.commit()
+        
+        # Prepare response
+        response_data = {
+            'success': True, 
+            'slots_created': slots_created,
+            'total_dates': len(dates)
+        }
+        
+        if errors:
+            response_data['warnings'] = errors
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 @app.route('/api/busy', methods=['POST'])
 @login_required
 def add_busy_slot():
