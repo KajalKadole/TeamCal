@@ -1189,34 +1189,23 @@ function renderGanttChart(data) {
     sidebar.innerHTML = '';
     timeline.innerHTML = '';
     
-    // Generate timeline headers (weeks for 8 weeks)
+    // Generate timeline headers (months for 6 months)
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start of current week
+    startDate.setDate(1); // Start of current month
     
-    const weeks = [];
-    for (let i = 0; i < 8; i++) {
-        const weekStart = new Date(startDate);
-        weekStart.setDate(startDate.getDate() + (i * 7));
-        weeks.push(weekStart);
+    const months = [];
+    for (let i = 0; i < 6; i++) {
+        const monthStart = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+        months.push(monthStart);
     }
     
     // Create month headers
-    let currentMonth = '';
-    weeks.forEach((week, index) => {
-        const monthName = week.toLocaleDateString('en-US', { month: 'short' });
-        const weekNum = getWeekNumber(week);
+    months.forEach((month, index) => {
+        const monthHeader = document.createElement('div');
+        monthHeader.className = 'gantt-month-header';
+        monthHeader.textContent = month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         
-        const weekHeader = document.createElement('div');
-        weekHeader.className = 'gantt-week-header';
-        weekHeader.textContent = `Week ${weekNum}`;
-        
-        // Add month boundary styling
-        if (monthName !== currentMonth) {
-            weekHeader.classList.add('month-boundary');
-            currentMonth = monthName;
-        }
-        
-        timelineHeader.appendChild(weekHeader);
+        timelineHeader.appendChild(monthHeader);
     });
     
     // Render user rows
@@ -1234,58 +1223,49 @@ function renderGanttChart(data) {
         const timelineRow = document.createElement('div');
         timelineRow.className = 'gantt-timeline-row';
         
-        // Create week cells
-        weeks.forEach((week, weekIndex) => {
-            const weekCell = document.createElement('div');
-            weekCell.className = 'gantt-week-cell';
+        // Create month cells
+        months.forEach((month, monthIndex) => {
+            const monthCell = document.createElement('div');
+            monthCell.className = 'gantt-month-cell';
             
-            // Add month boundary styling
-            if (weekIndex > 0) {
-                const prevWeek = weeks[weekIndex - 1];
-                if (week.getMonth() !== prevWeek.getMonth()) {
-                    weekCell.classList.add('month-boundary');
-                }
-            }
-            
-            timelineRow.appendChild(weekCell);
+            timelineRow.appendChild(monthCell);
         });
         
         timeline.appendChild(timelineRow);
         
         // Add events as bars
         user.events.forEach(event => {
-            createGanttBar(timelineRow, event, weeks, user.color);
+            createGanttBar(timelineRow, event, months, user.color);
         });
     });
 }
 
 // Create a Gantt bar for an event
-function createGanttBar(timelineRow, event, weeks, userColor) {
+function createGanttBar(timelineRow, event, months, userColor) {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
     
-    // Find which week cells this event spans
-    let startWeekIndex = -1;
-    let endWeekIndex = -1;
+    // Find which month cells this event spans
+    let startMonthIndex = -1;
+    let endMonthIndex = -1;
     
-    weeks.forEach((week, index) => {
-        const weekEnd = new Date(week);
-        weekEnd.setDate(week.getDate() + 6);
+    months.forEach((month, index) => {
+        const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0); // Last day of month
         
-        if (eventStart <= weekEnd && eventStart >= week && startWeekIndex === -1) {
-            startWeekIndex = index;
+        if (eventStart <= monthEnd && eventStart.getMonth() === month.getMonth() && eventStart.getFullYear() === month.getFullYear() && startMonthIndex === -1) {
+            startMonthIndex = index;
         }
-        if (eventEnd <= weekEnd && eventEnd >= week) {
-            endWeekIndex = index;
+        if (eventEnd <= monthEnd && eventEnd.getMonth() === month.getMonth() && eventEnd.getFullYear() === month.getFullYear()) {
+            endMonthIndex = index;
         }
     });
     
-    if (startWeekIndex === -1) return;
-    if (endWeekIndex === -1) endWeekIndex = startWeekIndex;
+    if (startMonthIndex === -1) return;
+    if (endMonthIndex === -1) endMonthIndex = startMonthIndex;
     
     // Calculate position and width
-    const startCell = timelineRow.children[startWeekIndex];
-    const endCell = timelineRow.children[endWeekIndex];
+    const startCell = timelineRow.children[startMonthIndex];
+    const endCell = timelineRow.children[endMonthIndex];
     
     if (!startCell || !endCell) return;
     
@@ -1296,9 +1276,9 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
     bar.title = `${event.title}\n${event.start} - ${event.end || event.start}`;
     
     // Position the bar using percentage-based positioning
-    const cellWidth = 100 / 8; // 8 weeks total, each gets equal percentage
-    const startOffset = startWeekIndex * cellWidth;
-    const width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
+    const cellWidth = 100 / 6; // 6 months total, each gets equal percentage
+    const startOffset = startMonthIndex * cellWidth;
+    const width = (endMonthIndex - startMonthIndex + 1) * cellWidth;
     
     bar.style.left = `${startOffset}%`;
     bar.style.width = `calc(${width}% - 8px)`; // Subtract padding
