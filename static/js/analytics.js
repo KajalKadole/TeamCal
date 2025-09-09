@@ -1,5 +1,6 @@
 // Analytics Dashboard JavaScript
 console.log('Analytics.js file loaded successfully!'); // Basic test
+console.log('Window location:', window.location.href); // Debug current page
 
 // Check if Chart.js is available
 if (typeof Chart === 'undefined') {
