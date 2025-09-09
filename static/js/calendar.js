@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     allEvents = data;
                     updateTeamMemberCounts(data);
+                    updateUserColorLegend(data);
                     successCallback(data);
                 })
                 .catch(error => {
@@ -294,6 +295,7 @@ function addEvent() {
                 .then(events => {
                     allEvents = events;
                     updateTeamMemberCounts(events);
+                    updateUserColorLegend(events);
                     calendar.refetchEvents();
                 });
             bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
@@ -391,6 +393,7 @@ function createSingleDayAvailability() {
                 .then(events => {
                     allEvents = events;
                     updateTeamMemberCounts(events);
+                    updateUserColorLegend(events);
                     calendar.refetchEvents();
                 });
             
@@ -609,6 +612,7 @@ function createMultiDayAvailability() {
                 .then(events => {
                     allEvents = events;
                     updateTeamMemberCounts(events);
+                    updateUserColorLegend(events);
                     calendar.refetchEvents();
                 });
             
@@ -813,6 +817,7 @@ function deleteEvent() {
                 .then(events => {
                     allEvents = events;
                     updateTeamMemberCounts(events);
+                    updateUserColorLegend(events);
                     calendar.refetchEvents();
                 });
             bootstrap.Modal.getInstance(document.getElementById('eventDetailsModal')).hide();
@@ -972,6 +977,7 @@ function updateEvent() {
                 .then(events => {
                     allEvents = events;
                     updateTeamMemberCounts(events);
+                    updateUserColorLegend(events);
                     calendar.refetchEvents();
                 });
             bootstrap.Modal.getInstance(document.getElementById('addEventModal')).hide();
@@ -1075,6 +1081,39 @@ function formatTime(date) {
         minute: '2-digit',
         hour12: true
     });
+}
+
+// Update user color legend
+function updateUserColorLegend(events) {
+    const legendContainer = document.getElementById('userColorLegend');
+    if (!legendContainer) return;
+
+    // Extract unique users with their colors
+    const userColors = new Map();
+    events.forEach(event => {
+        if (event.username && event.color && !userColors.has(event.username)) {
+            userColors.set(event.username, event.color);
+        }
+    });
+
+    // Clear existing legend
+    legendContainer.innerHTML = '';
+
+    // Add legend entries
+    userColors.forEach((color, username) => {
+        const legendItem = document.createElement('div');
+        legendItem.className = 'legend-item d-flex align-items-center';
+        legendItem.innerHTML = `
+            <div class="legend-color me-2" 
+                 style="width: 16px; height: 16px; background-color: ${color}; border: 2px solid ${color}; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"></div>
+            <span class="legend-text" style="font-size: 0.875em; font-weight: 500;">${username}</span>
+        `;
+        legendContainer.appendChild(legendItem);
+    });
+
+    if (userColors.size === 0) {
+        legendContainer.innerHTML = '<span class="text-muted">No events to display colors for</span>';
+    }
 }
 
 // Update team member status counters
