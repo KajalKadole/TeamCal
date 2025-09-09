@@ -23,6 +23,16 @@
                     </small>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
+                    <!-- View Toggle Buttons -->
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm active" id="calendarViewBtn" onclick="switchView('calendar')">
+                            <i class="fas fa-calendar me-1"></i>Calendar
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="ganttViewBtn" onclick="switchView('gantt')">
+                            <i class="fas fa-chart-gantt me-1"></i>Timeline
+                        </button>
+                    </div>
+                    
                     {% if current_user.is_admin %}
                     <!-- Employee Filter Dropdown -->
                     <select class="form-select form-select-sm" id="userFilter" style="width: 200px;">
@@ -53,6 +63,24 @@
             </div>
             <div class="card-body">
                 <div id="calendar"></div>
+                <div id="ganttChart" style="display: none;">
+                    <div class="gantt-container">
+                        <div class="gantt-header">
+                            <div class="gantt-sidebar-header">Teams</div>
+                            <div class="gantt-timeline-header" id="ganttTimelineHeader">
+                                <!-- Timeline headers will be generated here -->
+                            </div>
+                        </div>
+                        <div class="gantt-body">
+                            <div class="gantt-sidebar" id="ganttSidebar">
+                                <!-- Team/User rows will be generated here -->
+                            </div>
+                            <div class="gantt-timeline" id="ganttTimeline">
+                                <!-- Timeline content will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

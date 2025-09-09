@@ -2,6 +2,8 @@ let calendar;
 let currentEventType = null;
 let selectedEvent = null;
 let allEvents = [];
+let currentView = 'calendar';
+let ganttData = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
@@ -1114,6 +1116,198 @@ function updateUserColorLegend(events) {
     if (userColors.size === 0) {
         legendContainer.innerHTML = '<span class="text-muted">No events to display colors for</span>';
     }
+}
+
+// Switch between calendar and gantt views
+function switchView(viewType) {
+    currentView = viewType;
+    
+    const calendarView = document.getElementById('calendar');
+    const ganttView = document.getElementById('ganttChart');
+    const calendarBtn = document.getElementById('calendarViewBtn');
+    const ganttBtn = document.getElementById('ganttViewBtn');
+    
+    if (viewType === 'calendar') {
+        calendarView.style.display = 'block';
+        ganttView.style.display = 'none';
+        calendarBtn.classList.add('active');
+        ganttBtn.classList.remove('active');
+    } else {
+        calendarView.style.display = 'none';
+        ganttView.style.display = 'block';
+        calendarBtn.classList.remove('active');
+        ganttBtn.classList.add('active');
+        
+        // Load Gantt chart data
+        loadGanttChart();
+    }
+}
+
+// Load and render Gantt chart
+function loadGanttChart() {
+    // Get current filter settings
+    const userFilter = document.getElementById('userFilter')?.value || 'all';
+    const departmentFilter = document.getElementById('departmentFilter')?.value || 'all';
+    
+    // Build URL with filter parameters
+    const params = new URLSearchParams();
+    
+    // Priority: user filter takes precedence over department filter
+    if (userFilter !== 'all') {
+        params.append('filter_type', 'individual');
+        params.append('user_id', userFilter);
+    } else if (departmentFilter !== 'all') {
+        params.append('filter_type', 'department');
+        params.append('department_id', departmentFilter);
+    } else {
+        params.append('filter_type', 'all');
+    }
+    
+    fetch(`/api/gantt-data?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            ganttData = data;
+            renderGanttChart(data);
+        })
+        .catch(error => {
+            console.error('Error loading Gantt data:', error);
+        });
+}
+
+// Render the Gantt chart
+function renderGanttChart(data) {
+    const timelineHeader = document.getElementById('ganttTimelineHeader');
+    const sidebar = document.getElementById('ganttSidebar');
+    const timeline = document.getElementById('ganttTimeline');
+    
+    // Clear existing content
+    timelineHeader.innerHTML = '';
+    sidebar.innerHTML = '';
+    timeline.innerHTML = '';
+    
+    // Generate timeline headers (weeks for 8 weeks)
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start of current week
+    
+    const weeks = [];
+    for (let i = 0; i < 8; i++) {
+        const weekStart = new Date(startDate);
+        weekStart.setDate(startDate.getDate() + (i * 7));
+        weeks.push(weekStart);
+    }
+    
+    // Create month headers
+    let currentMonth = '';
+    weeks.forEach((week, index) => {
+        const monthName = week.toLocaleDateString('en-US', { month: 'short' });
+        const weekNum = getWeekNumber(week);
+        
+        const weekHeader = document.createElement('div');
+        weekHeader.className = 'gantt-week-header';
+        weekHeader.textContent = `Week ${weekNum}`;
+        
+        // Add month boundary styling
+        if (monthName !== currentMonth) {
+            weekHeader.classList.add('month-boundary');
+            currentMonth = monthName;
+        }
+        
+        timelineHeader.appendChild(weekHeader);
+    });
+    
+    // Render user rows
+    data.users.forEach(user => {
+        // Sidebar user row
+        const userRow = document.createElement('div');
+        userRow.className = 'gantt-user-row';
+        userRow.innerHTML = `
+            <div class="gantt-user-color" style="background-color: ${user.color};"></div>
+            <span>${user.username}</span>
+        `;
+        sidebar.appendChild(userRow);
+        
+        // Timeline row
+        const timelineRow = document.createElement('div');
+        timelineRow.className = 'gantt-timeline-row';
+        
+        // Create week cells
+        weeks.forEach((week, weekIndex) => {
+            const weekCell = document.createElement('div');
+            weekCell.className = 'gantt-week-cell';
+            
+            // Add month boundary styling
+            if (weekIndex > 0) {
+                const prevWeek = weeks[weekIndex - 1];
+                if (week.getMonth() !== prevWeek.getMonth()) {
+                    weekCell.classList.add('month-boundary');
+                }
+            }
+            
+            timelineRow.appendChild(weekCell);
+        });
+        
+        timeline.appendChild(timelineRow);
+        
+        // Add events as bars
+        user.events.forEach(event => {
+            createGanttBar(timelineRow, event, weeks, user.color);
+        });
+    });
+}
+
+// Create a Gantt bar for an event
+function createGanttBar(timelineRow, event, weeks, userColor) {
+    const eventStart = new Date(event.start);
+    const eventEnd = new Date(event.end || event.start);
+    
+    // Find which week cells this event spans
+    let startWeekIndex = -1;
+    let endWeekIndex = -1;
+    
+    weeks.forEach((week, index) => {
+        const weekEnd = new Date(week);
+        weekEnd.setDate(week.getDate() + 6);
+        
+        if (eventStart <= weekEnd && eventStart >= week && startWeekIndex === -1) {
+            startWeekIndex = index;
+        }
+        if (eventEnd <= weekEnd && eventEnd >= week) {
+            endWeekIndex = index;
+        }
+    });
+    
+    if (startWeekIndex === -1) return;
+    if (endWeekIndex === -1) endWeekIndex = startWeekIndex;
+    
+    // Calculate position and width
+    const startCell = timelineRow.children[startWeekIndex];
+    const endCell = timelineRow.children[endWeekIndex];
+    
+    if (!startCell || !endCell) return;
+    
+    const bar = document.createElement('div');
+    bar.className = `gantt-bar ${event.type}`;
+    bar.style.setProperty('--bar-color', userColor);
+    bar.textContent = event.title.replace(/^[^-]+ - /, ''); // Remove username prefix
+    bar.title = `${event.title}\n${event.start} - ${event.end || event.start}`;
+    
+    // Position the bar
+    const startOffset = startWeekIndex * 100; // Assuming each week is 100px
+    const width = (endWeekIndex - startWeekIndex + 1) * 100;
+    
+    bar.style.left = `${startOffset}px`;
+    bar.style.width = `${width - 8}px`; // Subtract padding
+    
+    timelineRow.appendChild(bar);
+}
+
+// Get week number
+function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
 // Update team member status counters
