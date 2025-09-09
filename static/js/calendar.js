@@ -1180,6 +1180,8 @@ function loadGanttChart() {
 
 // Render the Gantt chart
 function renderGanttChart(data) {
+    console.log('renderGanttChart called with data:', data);
+    
     const timelineHeader = document.getElementById('ganttTimelineHeader');
     const sidebar = document.getElementById('ganttSidebar');
     const timeline = document.getElementById('ganttTimeline');
@@ -1198,6 +1200,8 @@ function renderGanttChart(data) {
         const monthStart = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
         months.push(monthStart);
     }
+    
+    console.log('Timeline months:', months.map(m => m.toLocaleDateString()));
     
     // Create month headers
     months.forEach((month, index) => {
@@ -1246,7 +1250,9 @@ function renderGanttChart(data) {
         timeline.appendChild(timelineRow);
         
         // Add events as bars
+        console.log(`User ${user.username} has ${user.events.length} events:`, user.events);
         user.events.forEach(event => {
+            console.log(`Creating bar for event:`, event);
             createGanttBar(timelineRow, event, months, user.color);
         });
     });
@@ -1256,6 +1262,8 @@ function renderGanttChart(data) {
 function createGanttBar(timelineRow, event, months, userColor) {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
+    
+    console.log(`Creating bar for event from ${eventStart.toLocaleDateString()} to ${eventEnd.toLocaleDateString()}`);
     
     // Find which month cells this event spans
     let startMonthIndex = -1;
@@ -1272,7 +1280,12 @@ function createGanttBar(timelineRow, event, months, userColor) {
         }
     });
     
-    if (startMonthIndex === -1) return;
+    console.log(`Event month indexes: start=${startMonthIndex}, end=${endMonthIndex}`);
+    
+    if (startMonthIndex === -1) {
+        console.log('Event not in timeline range, skipping');
+        return;
+    }
     if (endMonthIndex === -1) endMonthIndex = startMonthIndex;
     
     // Calculate position and width
@@ -1331,6 +1344,7 @@ function createGanttBar(timelineRow, event, months, userColor) {
     }
     
     timelineRow.appendChild(bar);
+    console.log(`Bar created and appended: ${dateText}`);
 }
 
 // Get week number
