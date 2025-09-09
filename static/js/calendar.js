@@ -1210,18 +1210,10 @@ function renderGanttChart(data) {
         
         // Create week title
         const weekTitle = document.createElement('div');
-        weekTitle.className = 'gantt-month-title';
+        weekTitle.className = 'gantt-week-title';
         weekTitle.textContent = `Week ${index + 1}`;
         
-        // Create date range subtitle
-        const dateRange = document.createElement('div');
-        dateRange.className = 'gantt-month-subtitle';
-        const weekEnd = new Date(week);
-        weekEnd.setDate(week.getDate() + 6);
-        dateRange.textContent = `${week.getDate()}/${week.getMonth() + 1} - ${weekEnd.getDate()}/${weekEnd.getMonth() + 1}`;
-        
         weekHeader.appendChild(weekTitle);
-        weekHeader.appendChild(dateRange);
         timelineHeader.appendChild(weekHeader);
     });
     
@@ -1324,10 +1316,10 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
     const startOffset = startWeekIndex * cellWidth;
     let width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
     
-    // Position the bar in the correct week cell
-    bar.style.left = `${startOffset + 1}%`; // Add small margin from cell start
-    bar.style.width = `${Math.max(width - 2, 6)}%`; // Ensure minimum width
-    bar.style.top = '15px'; // Position from top of row
+    // Position the bar in the correct week cell - make it span properly
+    bar.style.left = `${startOffset + 0.5}%`; // Small margin from cell start
+    bar.style.width = `${Math.max(width - 1, 7)}%`; // Ensure good width spanning
+    bar.style.top = '20px'; // Position from top of row
     bar.style.position = 'absolute';
     
     timelineRow.appendChild(bar);

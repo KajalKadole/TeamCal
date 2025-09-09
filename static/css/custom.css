@@ -132,45 +132,29 @@
 
 .gantt-month-header {
     flex: 1;
-    min-width: 160px;
-    padding: 12px 8px;
+    min-width: 120px;
+    padding: 16px 8px;
     text-align: center;
-    border-right: 2px solid var(--bs-border-color);
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: var(--bs-white);
+    border-right: 1px solid var(--bs-border-color);
+    background: #f8f9fa;
+    color: #333;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    position: relative;
-    overflow: hidden;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 .gantt-month-header:last-child {
     border-right: none;
 }
 
-.gantt-month-title {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+.gantt-week-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
 }
 
-.gantt-month-subtitle {
-    font-size: 0.8rem;
-    font-weight: 600;
-    opacity: 0.95;
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 12px;
-    padding: 4px 10px;
-    margin: 0 auto;
-    max-width: fit-content;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
 
 .gantt-body {
     display: flex;
@@ -178,8 +162,8 @@
 
 .gantt-sidebar {
     width: 180px;
-    background: var(--bs-secondary-bg);
-    border-right: 2px solid var(--bs-border-color);
+    background: #f8f9fa;
+    border-right: 1px solid #e9ecef;
 }
 
 .gantt-timeline {
@@ -194,24 +178,16 @@
 }
 
 .gantt-user-row {
-    padding: 16px 20px;
+    padding: 20px;
     display: flex;
     align-items: center;
     gap: 12px;
     font-weight: 600;
-    background: linear-gradient(135deg, var(--bs-secondary-bg) 0%, rgba(255, 255, 255, 0.05) 100%);
-    border-bottom: 2px solid var(--bs-border-color);
-    min-height: 65px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    border-left: 4px solid transparent;
-}
-
-.gantt-user-row:hover {
-    background: linear-gradient(135deg, var(--bs-secondary-bg) 0%, rgba(255, 255, 255, 0.1) 100%);
-    border-left-color: var(--bs-primary);
-    transform: translateX(2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    min-height: 60px;
+    font-size: 0.95rem;
+    color: #333;
 }
 
 .gantt-user-color {
@@ -248,15 +224,11 @@
 .gantt-month-cell {
     flex: 1;
     min-width: 120px;
-    border-right: 2px solid var(--bs-border-color);
+    border-right: 1px solid #e9ecef;
     position: relative;
     padding: 4px;
-    background: var(--bs-body-bg);
-    background-image: 
-        linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.03) 1px, transparent 1px),
-        linear-gradient(rgba(var(--bs-border-color-rgb), 0.2) 1px, transparent 1px);
-    background-size: 20px 20px;
-    transition: all 0.3s ease;
+    background: #fff;
+    min-height: 60px;
     overflow: visible;
 }
 
@@ -274,102 +246,43 @@
 
 .gantt-bar {
     position: absolute;
-    top: 15px;
-    height: 30px;
-    border-radius: 8px;
+    top: 20px;
+    height: 20px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 0 8px;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
     color: white;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    text-align: center;
-    min-width: 80px;
+    transition: all 0.2s ease;
+    text-align: left;
+    min-width: 60px;
     z-index: 5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.gantt-bar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent);
-    border-radius: 12px 12px 0 0;
-}
 
 .gantt-bar:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.35), 0 4px 15px rgba(0,0,0,0.2);
-    filter: brightness(1.1);
+    opacity: 0.8;
+    transform: translateY(-1px);
 }
 
 .gantt-bar.availability {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 50%, #6ee7b7 100%);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4), 0 3px 10px rgba(0,0,0,0.15);
-}
-
-.gantt-bar.availability::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-    border-radius: 12px;
+    background: #4285f4;
 }
 
 .gantt-bar.busy {
-    background: linear-gradient(135deg, #ef4444 0%, #f87171 50%, #fca5a5 100%);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4), 0 3px 10px rgba(0,0,0,0.15);
-}
-
-.gantt-bar.busy::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-    border-radius: 12px;
+    background: #ff6b6b;
 }
 
 .gantt-bar.leave {
-    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #fde047 100%);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4), 0 3px 10px rgba(0,0,0,0.15);
-    position: relative;
-}
-
-.gantt-bar.leave::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 8px,
-        rgba(255,255,255,0.2) 8px,
-        rgba(255,255,255,0.2) 16px
-    );
-    border-radius: 12px;
+    background: #ffa726;
 }
 
 /* FullCalendar custom styling for dark theme */
