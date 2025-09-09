@@ -74,7 +74,7 @@ function updateUI() {
         clockedInView.style.display = 'block';
         clockedOutView.style.display = 'none';
         
-        // Update clock in time
+        // Update clock in time - show exact login time
         const clockInTime = new Date(currentStatus.clock_in);
         document.getElementById('clockInTime').textContent = 
             clockInTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: true});
