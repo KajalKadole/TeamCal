@@ -1367,29 +1367,59 @@ function createGanttBar(timelineRow, event, weeks, userColor, barIndex = 0) {
     const startOffset = startWeekIndex * cellWidth;
     let width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
     
-    // Calculate more precise positioning within weeks
+    // Calculate bar size and position based on actual days
+    const totalDays = Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24)) + 1;
+    const dayWidth = cellWidth / 7; // Each day is 1/7 of a week column
+    
     if (startWeekIndex === endWeekIndex) {
         // Single week event - position based on actual days within the week
         const week = weeks[startWeekIndex];
-        const weekEnd = new Date(week);
-        weekEnd.setDate(week.getDate() + 6);
         
         // Calculate position within the week (0-6 days)
         const eventStartDay = Math.floor((eventStart - week) / (1000 * 60 * 60 * 24));
         const eventEndDay = Math.floor((eventEnd - week) / (1000 * 60 * 60 * 24));
         
-        // Position based on day within week (each day is ~14.3% of week width)
-        const dayWidth = cellWidth / 7; // Width per day
+        // Position and size based on actual day count
         const startDayOffset = Math.max(0, eventStartDay) * dayWidth;
-        const endDayOffset = Math.min(6, eventEndDay) * dayWidth;
-        const eventWidth = endDayOffset - startDayOffset + dayWidth;
+        const actualDaySpan = Math.min(eventEndDay - Math.max(0, eventStartDay) + 1, 7);
+        const eventWidth = actualDaySpan * dayWidth;
         
         bar.style.left = `${startOffset + startDayOffset + 0.2}%`;
-        bar.style.width = `${Math.max(eventWidth - 0.4, 2)}%`;
+        bar.style.width = `${Math.max(eventWidth - 0.4, dayWidth * 0.8)}%`;
     } else {
-        // Multi-week event - span across weeks
-        bar.style.left = `${startOffset + 0.5}%`;
-        bar.style.width = `${Math.max(width - 1, 7)}%`;
+        // Multi-week event - calculate exact span across weeks
+        let totalEventWidth = 0;
+        let eventLeft = startOffset;
+        
+        // Calculate width by spanning across actual weeks
+        for (let weekIdx = startWeekIndex; weekIdx <= endWeekIndex; weekIdx++) {
+            const week = weeks[weekIdx];
+            const weekStart = new Date(week);
+            const weekEnd = new Date(week);
+            weekEnd.setDate(week.getDate() + 6);
+            
+            let weekEventStart, weekEventEnd;
+            
+            if (weekIdx === startWeekIndex) {
+                weekEventStart = eventStart;
+                weekEventEnd = weekEnd < eventEnd ? weekEnd : eventEnd;
+                // Calculate offset within first week
+                const dayOffset = Math.floor((eventStart - week) / (1000 * 60 * 60 * 24));
+                eventLeft = startOffset + (weekIdx * cellWidth) + (dayOffset * dayWidth);
+            } else if (weekIdx === endWeekIndex) {
+                weekEventStart = weekStart;
+                weekEventEnd = eventEnd;
+            } else {
+                weekEventStart = weekStart;
+                weekEventEnd = weekEnd;
+            }
+            
+            const weekDays = Math.ceil((weekEventEnd - weekEventStart) / (1000 * 60 * 60 * 24)) + 1;
+            totalEventWidth += weekDays * dayWidth;
+        }
+        
+        bar.style.left = `${eventLeft + 0.2}%`;
+        bar.style.width = `${Math.max(totalEventWidth - 0.4, dayWidth * 0.8)}%`;
     }
     
     // Stack bars vertically to prevent overlap
