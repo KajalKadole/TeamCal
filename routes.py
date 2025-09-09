@@ -533,6 +533,78 @@ def get_events():
     
     return jsonify(events)
 
+@app.route('/api/gantt-data')
+@login_required
+def get_gantt_data():
+    user_filter = request.args.get('user_id')
+    department_filter = request.args.get('department_id')
+    filter_type = request.args.get('filter_type', 'all')
+    
+    # Determine which users to show based on filter type
+    if current_user.is_admin:
+        if filter_type == 'individual' and user_filter:
+            if user_filter == 'all':
+                users = User.query.all()
+            else:
+                users = [User.query.get(int(user_filter))]
+        elif filter_type == 'department' and department_filter:
+            if department_filter == 'all':
+                users = User.query.all()
+            else:
+                users = User.query.filter_by(department_id=int(department_filter)).all()
+        elif filter_type == 'all':
+            users = User.query.all()
+        else:
+            users = User.query.all()
+    else:
+        users = [current_user]
+    
+    gantt_data = {'users': []}
+    
+    for user in users:
+        user_color = generate_user_color(user.id, user.username)
+        user_events = []
+        
+        # Get all events for this user
+        availability_slots = AvailabilitySlot.query.filter_by(user_id=user.id).all()
+        for slot in availability_slots:
+            user_events.append({
+                'id': f'avail-{slot.id}',
+                'title': f'{user.username} - Available',
+                'start': f'{slot.date}T{slot.start_time}',
+                'end': f'{slot.date}T{slot.end_time}',
+                'type': 'availability'
+            })
+        
+        busy_slots = BusySlot.query.filter_by(user_id=user.id).all()
+        for slot in busy_slots:
+            user_events.append({
+                'id': f'busy-{slot.id}',
+                'title': f'{user.username} - {slot.title}',
+                'start': f'{slot.date}T{slot.start_time}',
+                'end': f'{slot.date}T{slot.end_time}',
+                'type': 'busy'
+            })
+        
+        leave_days = LeaveDay.query.filter_by(user_id=user.id).all()
+        for leave in leave_days:
+            user_events.append({
+                'id': f'leave-{leave.id}',
+                'title': f'{user.username} - {leave.leave_type}',
+                'start': f'{leave.date}',
+                'end': f'{leave.date}',
+                'type': 'leave'
+            })
+        
+        gantt_data['users'].append({
+            'id': user.id,
+            'username': user.username,
+            'color': user_color,
+            'events': user_events
+        })
+    
+    return jsonify(gantt_data)
+
 @app.route('/api/availability', methods=['POST'])
 @login_required
 def add_availability():

@@ -1291,12 +1291,13 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
     bar.textContent = event.title.replace(/^[^-]+ - /, ''); // Remove username prefix
     bar.title = `${event.title}\n${event.start} - ${event.end || event.start}`;
     
-    // Position the bar
-    const startOffset = startWeekIndex * 100; // Assuming each week is 100px
-    const width = (endWeekIndex - startWeekIndex + 1) * 100;
+    // Position the bar using percentage-based positioning
+    const cellWidth = 100 / 8; // 8 weeks total, each gets equal percentage
+    const startOffset = startWeekIndex * cellWidth;
+    const width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
     
-    bar.style.left = `${startOffset}px`;
-    bar.style.width = `${width - 8}px`; // Subtract padding
+    bar.style.left = `${startOffset}%`;
+    bar.style.width = `calc(${width}% - 8px)`; // Subtract padding
     
     timelineRow.appendChild(bar);
 }
