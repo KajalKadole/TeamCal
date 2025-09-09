@@ -1244,8 +1244,8 @@ function renderGanttChart(data) {
         
         // Group events into continuous periods and create bars
         const groupedEvents = groupContinuousEvents(user.events);
-        groupedEvents.forEach(eventGroup => {
-            createGanttBar(timelineRow, eventGroup, weeks, user.color);
+        groupedEvents.forEach((eventGroup, index) => {
+            createGanttBar(timelineRow, eventGroup, weeks, user.color, index);
         });
     });
 }
@@ -1304,7 +1304,7 @@ function createGroupEvent(eventGroup) {
 }
 
 // Create a Gantt bar for an event
-function createGanttBar(timelineRow, event, weeks, userColor) {
+function createGanttBar(timelineRow, event, weeks, userColor, barIndex = 0) {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
     
@@ -1345,16 +1345,12 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
     const endDate = event.end ? new Date(event.end) : startDate;
     
     let dateText = '';
-    if (event.groupSize && event.groupSize > 1) {
-        // Grouped event - show day count
-        dateText = `${event.groupSize}d`;
-    } else if (startDate.toDateString() === endDate.toDateString()) {
-        // Single day
-        dateText = startDate.getDate().toString();
+    if (startDate.toDateString() === endDate.toDateString()) {
+        // Single day - show month/day format
+        dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } else {
-        // Multiple days
-        const dayCount = Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24)) + 1;
-        dateText = `${dayCount}d`;
+        // Multiple days - show start and end dates
+        dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
     }
     
     bar.textContent = dateText;
@@ -1393,7 +1389,10 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
         bar.style.width = `${Math.max(width - 1, 7)}%`;
     }
     
-    bar.style.top = '20px'; // Position from top of row
+    // Stack bars vertically to prevent overlap
+    const barHeight = 20;
+    const barSpacing = 25; // Space between bars
+    bar.style.top = `${15 + (barIndex * barSpacing)}px`; // Stack bars vertically
     bar.style.position = 'absolute';
     
     timelineRow.appendChild(bar);
