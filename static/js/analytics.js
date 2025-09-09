@@ -1,10 +1,33 @@
 // Analytics Dashboard JavaScript
 console.log('Analytics.js file loaded successfully!'); // Basic test
 
+// Check if Chart.js is available
+if (typeof Chart === 'undefined') {
+    console.error('Chart.js library not loaded!');
+} else {
+    console.log('Chart.js library is available');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, starting analytics initialization...'); // Basic test
+    
+    // Check if essential elements exist
+    const requiredElements = ['workHoursTrendChart', 'statusDistributionChart', 'timeRangeFilter'];
+    requiredElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.error(`Required element '${id}' not found!`);
+        } else {
+            console.log(`Element '${id}' found successfully`);
+        }
+    });
+    
     // Initialize charts and load data
-    initializeAnalytics();
+    try {
+        initializeAnalytics();
+    } catch (error) {
+        console.error('Error initializing analytics:', error);
+    }
     
     // Set up filters
     document.getElementById('timeRangeFilter').addEventListener('change', function() {
@@ -32,9 +55,16 @@ function initializeAnalytics() {
 }
 
 function createCharts() {
+    console.log('Creating charts...'); // Debug log
+    
     // Work Hours Trend Chart
-    const trendCtx = document.getElementById('workHoursTrendChart').getContext('2d');
-    charts.workHoursTrend = new Chart(trendCtx, {
+    const trendCtx = document.getElementById('workHoursTrendChart');
+    if (!trendCtx) {
+        console.error('workHoursTrendChart element not found!');
+        return;
+    }
+    const trendContext = trendCtx.getContext('2d');
+    charts.workHoursTrend = new Chart(trendContext, {
         type: 'line',
         data: {
             labels: [],
@@ -74,8 +104,13 @@ function createCharts() {
     });
 
     // Status Distribution Chart
-    const statusCtx = document.getElementById('statusDistributionChart').getContext('2d');
-    charts.statusDistribution = new Chart(statusCtx, {
+    const statusCtx = document.getElementById('statusDistributionChart');
+    if (!statusCtx) {
+        console.error('statusDistributionChart element not found!');
+        return;
+    }
+    const statusContext = statusCtx.getContext('2d');
+    charts.statusDistribution = new Chart(statusContext, {
         type: 'doughnut',
         data: {
             labels: [],
