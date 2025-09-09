@@ -596,12 +596,14 @@ def get_gantt_data():
                 'type': 'leave'
             })
         
-        gantt_data['users'].append({
-            'id': user.id,
-            'username': user.username,
-            'color': user_color,
-            'events': user_events
-        })
+        # Only include users who have events (availability, busy, or leave)
+        if user_events:
+            gantt_data['users'].append({
+                'id': user.id,
+                'username': user.username,
+                'color': user_color,
+                'events': user_events
+            })
     
     return jsonify(gantt_data)
 
