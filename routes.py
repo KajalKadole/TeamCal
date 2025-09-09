@@ -1282,9 +1282,6 @@ def get_public_team_status():
 @login_required
 def analytics():
     """Admin analytics dashboard"""
-    print(f"Analytics route - User authenticated: {current_user.is_authenticated}")
-    print(f"Analytics route - User ID: {current_user.id if current_user.is_authenticated else 'None'}")
-    print(f"Analytics route - User is_admin: {current_user.is_admin if current_user.is_authenticated else 'None'}")
     
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
@@ -1306,9 +1303,6 @@ def analytics():
 @login_required
 def analytics_overview():
     """Get overview analytics data"""
-    print(f"Overview API - User authenticated: {current_user.is_authenticated}")
-    print(f"Overview API - User ID: {current_user.id if current_user.is_authenticated else 'None'}")
-    print(f"Overview API - User is_admin: {current_user.is_admin if current_user.is_authenticated else 'None'}")
     
     if not current_user.is_authenticated:
         return jsonify({'success': False, 'error': 'Authentication required'}), 401

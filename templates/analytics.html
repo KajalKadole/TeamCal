@@ -91,7 +91,7 @@
 
 <!-- Charts Row 1 -->
 <div class="row mb-4">
-    <div class="col-xl-8">
+    <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
@@ -104,86 +104,23 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>
-                    Current Team Status
-                </h5>
-            </div>
-            <div class="card-body">
-                <canvas id="statusDistributionChart" height="200"></canvas>
-            </div>
-        </div>
-    </div>
 </div>
 
-<!-- Charts Row 2 -->
-<div class="row mb-4">
+
+<!-- Detailed Analytics Tables -->
+<div class="row">
     <div class="col-xl-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>
-                    Team Productivity Metrics (Last 30 Days)
+                    <i class="fas fa-info-circle me-2"></i>
+                    Analytics Summary
                 </h5>
             </div>
             <div class="card-body">
-                <canvas id="userProductivityChart" height="80"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Detailed Analytics Tables -->
-<div class="row">
-    <div class="col-xl-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-table me-2"></i>
-                    Top Performers
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped" id="topPerformersTable">
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Total Hours</th>
-                                <th>Sessions</th>
-                                <th>Avg Session</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="4" class="text-center text-muted">
-                                    <div class="spinner-border spinner-border-sm me-2"></div>
-                                    Loading data...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-6">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-trending-up me-2"></i>
-                    Productivity Insights
-                </h5>
-            </div>
-            <div class="card-body">
-                <div id="productivityInsights">
-                    <div class="text-center text-muted">
-                        <div class="spinner-border spinner-border-sm me-2"></div>
-                        Analyzing productivity patterns...
-                    </div>
+                <div class="text-center">
+                    <p class="mb-0">Individual work hours and system metrics are displayed above.</p>
+                    <small class="text-muted">Track your productivity with the Work Hours Trend chart.</small>
                 </div>
             </div>
         </div>
