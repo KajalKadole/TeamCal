@@ -162,8 +162,12 @@ function setupCalendarFilters() {
 }
 
 function filterCalendar() {
-    // Simply refresh the calendar - the events function will handle the filtering
-    calendar.refetchEvents();
+    // Refresh based on current view
+    if (currentView === 'calendar') {
+        calendar.refetchEvents();
+    } else if (currentView === 'gantt') {
+        loadGanttChart();
+    }
 }
 
 function initializeModalHandlers() {
