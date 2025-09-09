@@ -1403,12 +1403,6 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
             endPeriodIndex = index;
         }
         
-        // Debug logging for month view
-        if (currentTimelineView === 'month' && index < 3) {
-            console.log(`Period ${index}: ${periodStart.toDateString()} to ${periodEnd.toDateString()}`);
-            console.log(`Event: ${eventStart.toDateString()} to ${eventEnd.toDateString()}`);
-            console.log(`Event in period ${index}:`, eventStart >= periodStart && eventStart <= periodEnd);
-        }
     });
     
     if (startPeriodIndex === -1) return;
@@ -1459,12 +1453,11 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     
     // Position bar based on view type
     if (currentTimelineView === 'week') {
-        // Week view - position based on actual days
-        const totalDays = Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24)) + 1;
+        // Week view - position based on actual days within the week
         const dayWidth = cellWidth / 7;
         
         if (startPeriodIndex === endPeriodIndex) {
-            // Single week event
+            // Single week event - position precisely within the week
             const period = periods[startPeriodIndex];
             const eventStartDay = Math.floor((eventStart - period) / (1000 * 60 * 60 * 24));
             const eventEndDay = Math.floor((eventEnd - period) / (1000 * 60 * 60 * 24));
@@ -1473,17 +1466,19 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
             const actualDaySpan = Math.min(eventEndDay - Math.max(0, eventStartDay) + 1, 7);
             const eventWidth = actualDaySpan * dayWidth;
             
-            bar.style.left = `${startOffset + startDayOffset + 0.2}%`;
-            bar.style.width = `${Math.max(eventWidth - 0.4, dayWidth * 0.8)}%`;
+            bar.style.left = `${startOffset + startDayOffset + 0.3}%`;
+            bar.style.width = `${Math.max(eventWidth - 0.6, dayWidth * 0.8)}%`;
         } else {
-            // Multi-week event - span across weeks
+            // Multi-week event - span across weeks with proper positioning
             bar.style.left = `${startOffset + 0.5}%`;
-            bar.style.width = `${Math.max(width - 1, 7)}%`;
+            bar.style.width = `${Math.max(width - 1, 8)}%`;
         }
     } else {
-        // Month view - position within months
-        bar.style.left = `${startOffset + 1}%`;
-        bar.style.width = `${Math.max(width - 2, 6)}%`;
+        // Month view - position bars correctly within month columns
+        // Calculate exact position within the month column
+        const monthPadding = 1.5; // Small padding from column edges
+        bar.style.left = `${startOffset + monthPadding}%`;
+        bar.style.width = `${Math.max(width - (monthPadding * 2), cellWidth * 0.8)}%`;
     }
     
     // Stack bars vertically to prevent overlap
