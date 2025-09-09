@@ -1398,9 +1398,16 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
         if (eventStart >= periodStart && eventStart <= periodEnd && startPeriodIndex === -1) {
             startPeriodIndex = index;
         }
-        // Check if event ends in this period
+        // Check if event ends in this period  
         if (eventEnd >= periodStart && eventEnd <= periodEnd) {
             endPeriodIndex = index;
+        }
+        
+        // Debug logging for month view
+        if (currentTimelineView === 'month' && index < 3) {
+            console.log(`Period ${index}: ${periodStart.toDateString()} to ${periodEnd.toDateString()}`);
+            console.log(`Event: ${eventStart.toDateString()} to ${eventEnd.toDateString()}`);
+            console.log(`Event in period ${index}:`, eventStart >= periodStart && eventStart <= periodEnd);
         }
     });
     
