@@ -1,8 +1,18 @@
 # Overview
 
-Ziqsy Team Calendar is a Flask-based web application designed to streamline team scheduling and availability management. The system allows employees to set their availability, mark busy periods, request leave days, and enables administrators to view a consolidated master calendar of all team members. Built with a focus on simplicity and efficiency, it provides an intuitive interface for managing team schedules and coordinating work assignments.
+Ziqsy Team Calendar is a Flask-based web application designed to streamline team scheduling and availability management. The system allows all employees to set their availability, mark busy periods, request leave days, and view a consolidated team calendar of all members. Built with a focus on simplicity and efficiency, it provides an intuitive interface for managing team schedules and coordinating work assignments with universal access to calendar and timeline views.
 
 # Recent Changes
+
+## September 9, 2025 - Universal Team Calendar Access
+- **Feature**: Calendar and timeline views are now accessible to all team members, not just administrators
+- **Changes Made**:
+  - Removed admin-only restrictions from user and department filter dropdowns
+  - Updated API endpoints (`/api/events` and `/api/gantt-data`) to allow all users to view team data
+  - Changed calendar title from "Master Calendar" (admin) / "My Calendar" (user) to "Team Calendar" for everyone
+  - Enhanced drag-and-drop availability selection with intuitive click-and-drag functionality
+- **Impact**: All team members can now view, filter, and interact with the complete team schedule
+- **User Experience**: Click single days or drag across multiple days to easily add availability
 
 ## September 6, 2025 - Fixed JavaScript Syntax Errors
 - **Issue**: Console errors showing "Uncaught SyntaxError: Unexpected token ')'" preventing clock in functionality
