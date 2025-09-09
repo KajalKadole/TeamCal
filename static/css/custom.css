@@ -101,22 +101,27 @@
 
 .gantt-header {
     display: flex;
-    background: var(--bs-light);
-    border-bottom: 2px solid var(--bs-border-color);
+    background: var(--bs-primary);
+    border-bottom: 3px solid var(--bs-primary);
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .gantt-sidebar-header {
     width: 180px;
     padding: 12px 16px;
-    font-weight: 600;
-    color: var(--bs-body-color);
-    background: var(--bs-secondary-bg);
-    border-right: 2px solid var(--bs-border-color);
+    font-weight: 700;
+    color: var(--bs-white);
+    background: var(--bs-primary);
+    border-right: 3px solid var(--bs-border-color);
     display: flex;
     align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .gantt-timeline-header {
@@ -127,18 +132,38 @@
 
 .gantt-month-header {
     flex: 1;
-    min-width: 150px;
-    padding: 12px 8px;
+    min-width: 160px;
+    padding: 8px 4px;
     text-align: center;
-    border-right: 1px solid var(--bs-border-color);
-    font-size: 0.875em;
-    font-weight: 600;
-    background: var(--bs-light);
-    color: var(--bs-body-color);
+    border-right: 2px solid var(--bs-border-color);
+    background: var(--bs-primary);
+    color: var(--bs-white);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .gantt-month-header:last-child {
     border-right: none;
+}
+
+.gantt-month-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gantt-month-subtitle {
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0.9;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 2px 6px;
+    margin: 0 auto;
+    max-width: fit-content;
 }
 
 .gantt-body {
@@ -166,11 +191,12 @@
     padding: 12px 16px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-weight: 500;
+    gap: 10px;
+    font-weight: 600;
     background: var(--bs-secondary-bg);
-    border-bottom: 1px solid var(--bs-border-color);
-    min-height: 50px;
+    border-bottom: 2px solid var(--bs-border-color);
+    min-height: 60px;
+    font-size: 0.95rem;
 }
 
 .gantt-user-color {
@@ -185,41 +211,54 @@
     flex: 1;
     position: relative;
     background: var(--bs-body-bg);
-    border-bottom: 1px solid var(--bs-border-color);
-    min-height: 50px;
+    border-bottom: 2px solid var(--bs-border-color);
+    min-height: 60px;
 }
 
 .gantt-month-cell {
     flex: 1;
-    min-width: 150px;
-    border-right: 1px solid var(--bs-border-color);
+    min-width: 160px;
+    border-right: 2px solid var(--bs-border-color);
     position: relative;
     padding: 4px;
     background: var(--bs-body-bg);
+    background-image: 
+        linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.05) 1px, transparent 1px),
+        linear-gradient(rgba(var(--bs-border-color-rgb), 0.3) 1px, transparent 1px);
+    background-size: 20px 20px;
 }
 
 .gantt-month-cell:last-child {
     border-right: none;
 }
 
+.gantt-month-cell:nth-child(odd) {
+    background-color: rgba(var(--bs-light-rgb), 0.3);
+}
+
+.gantt-month-cell:nth-child(even) {
+    background-color: rgba(var(--bs-secondary-bg-rgb), 0.2);
+}
+
 .gantt-bar {
     position: absolute;
-    top: 8px;
-    height: 34px;
-    border-radius: 4px;
+    top: 12px;
+    height: 36px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
-    padding: 0 8px;
-    font-size: 0.75em;
-    font-weight: 500;
+    padding: 0 12px;
+    font-size: 0.8em;
+    font-weight: 600;
     color: white;
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .gantt-bar:hover {

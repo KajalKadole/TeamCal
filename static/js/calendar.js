@@ -1203,8 +1203,20 @@ function renderGanttChart(data) {
     months.forEach((month, index) => {
         const monthHeader = document.createElement('div');
         monthHeader.className = 'gantt-month-header';
-        monthHeader.textContent = month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         
+        // Create month title
+        const monthTitle = document.createElement('div');
+        monthTitle.className = 'gantt-month-title';
+        monthTitle.textContent = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        // Create date range subtitle
+        const dateRange = document.createElement('div');
+        dateRange.className = 'gantt-month-subtitle';
+        const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+        dateRange.textContent = `${month.getDate()}-${lastDay}`;
+        
+        monthHeader.appendChild(monthTitle);
+        monthHeader.appendChild(dateRange);
         timelineHeader.appendChild(monthHeader);
     });
     
