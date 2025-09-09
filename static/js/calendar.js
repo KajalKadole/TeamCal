@@ -1242,11 +1242,65 @@ function renderGanttChart(data) {
         
         timeline.appendChild(timelineRow);
         
-        // Add events as bars
-        user.events.forEach(event => {
-            createGanttBar(timelineRow, event, weeks, user.color);
+        // Group events into continuous periods and create bars
+        const groupedEvents = groupContinuousEvents(user.events);
+        groupedEvents.forEach(eventGroup => {
+            createGanttBar(timelineRow, eventGroup, weeks, user.color);
         });
     });
+}
+
+// Group continuous events into separate bars
+function groupContinuousEvents(events) {
+    if (!events || events.length === 0) return [];
+    
+    // Sort events by start date
+    const sortedEvents = events.sort((a, b) => new Date(a.start) - new Date(b.start));
+    const groups = [];
+    let currentGroup = [sortedEvents[0]];
+    
+    for (let i = 1; i < sortedEvents.length; i++) {
+        const currentEvent = sortedEvents[i];
+        const lastEvent = currentGroup[currentGroup.length - 1];
+        
+        const currentStart = new Date(currentEvent.start);
+        const lastEnd = new Date(lastEvent.end || lastEvent.start);
+        
+        // Check if events are continuous (next day or same day)
+        const dayDiff = Math.floor((currentStart - lastEnd) / (1000 * 60 * 60 * 24));
+        
+        if (dayDiff <= 1 && currentEvent.type === lastEvent.type) {
+            // Events are continuous and same type, add to current group
+            currentGroup.push(currentEvent);
+        } else {
+            // Start a new group
+            groups.push(createGroupEvent(currentGroup));
+            currentGroup = [currentEvent];
+        }
+    }
+    
+    // Add the last group
+    groups.push(createGroupEvent(currentGroup));
+    
+    return groups;
+}
+
+function createGroupEvent(eventGroup) {
+    if (eventGroup.length === 1) {
+        return eventGroup[0];
+    }
+    
+    // Create a merged event for the group
+    const firstEvent = eventGroup[0];
+    const lastEvent = eventGroup[eventGroup.length - 1];
+    
+    return {
+        ...firstEvent,
+        start: firstEvent.start,
+        end: lastEvent.end || lastEvent.start,
+        title: `${firstEvent.title.split(' - ')[0]} - ${firstEvent.type} (${eventGroup.length} days)`,
+        groupSize: eventGroup.length
+    };
 }
 
 // Create a Gantt bar for an event
@@ -1291,18 +1345,16 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
     const endDate = event.end ? new Date(event.end) : startDate;
     
     let dateText = '';
-    if (event.type === 'leave') {
-        // For leave days, just show the date
-        dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (event.groupSize && event.groupSize > 1) {
+        // Grouped event - show day count
+        dateText = `${event.groupSize}d`;
+    } else if (startDate.toDateString() === endDate.toDateString()) {
+        // Single day
+        dateText = startDate.getDate().toString();
     } else {
-        // For availability and busy slots
-        if (startDate.toDateString() === endDate.toDateString()) {
-            // Single day - just show date for compact display
-            dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        } else {
-            // Multiple days
-            dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-        }
+        // Multiple days
+        const dayCount = Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24)) + 1;
+        dateText = `${dayCount}d`;
     }
     
     bar.textContent = dateText;
@@ -1316,17 +1368,29 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
     const startOffset = startWeekIndex * cellWidth;
     let width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
     
-    // For single day events, ensure minimum visible width
+    // Calculate more precise positioning within weeks
     if (startWeekIndex === endWeekIndex) {
-        // Single day event - give it a minimum width within the week
-        const minWidthPercentage = 8; // Minimum 8% width for visibility
-        width = Math.max(width * 0.8, minWidthPercentage); // Take 80% of week or minimum
-        bar.style.left = `${startOffset + 1}%`; // Small margin from cell start
-        bar.style.width = `${width}%`;
+        // Single week event - position based on actual days within the week
+        const week = weeks[startWeekIndex];
+        const weekEnd = new Date(week);
+        weekEnd.setDate(week.getDate() + 6);
+        
+        // Calculate position within the week (0-6 days)
+        const eventStartDay = Math.floor((eventStart - week) / (1000 * 60 * 60 * 24));
+        const eventEndDay = Math.floor((eventEnd - week) / (1000 * 60 * 60 * 24));
+        
+        // Position based on day within week (each day is ~14.3% of week width)
+        const dayWidth = cellWidth / 7; // Width per day
+        const startDayOffset = Math.max(0, eventStartDay) * dayWidth;
+        const endDayOffset = Math.min(6, eventEndDay) * dayWidth;
+        const eventWidth = endDayOffset - startDayOffset + dayWidth;
+        
+        bar.style.left = `${startOffset + startDayOffset + 0.2}%`;
+        bar.style.width = `${Math.max(eventWidth - 0.4, 2)}%`;
     } else {
-        // Multi-day event - span across weeks
-        bar.style.left = `${startOffset + 0.5}%`; // Small margin from cell start
-        bar.style.width = `${Math.max(width - 1, 7)}%`; // Ensure good width spanning
+        // Multi-week event - span across weeks
+        bar.style.left = `${startOffset + 0.5}%`;
+        bar.style.width = `${Math.max(width - 1, 7)}%`;
     }
     
     bar.style.top = '20px'; // Position from top of row
