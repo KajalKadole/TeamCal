@@ -132,15 +132,34 @@ function loadAnalytics() {
 }
 
 function updateSummaryStats(analytics) {
-    document.getElementById('totalAvailabilityHours').textContent = analytics.total_availability_hours || 0;
-    document.getElementById('totalBusyHours').textContent = analytics.total_busy_hours || 0;
-    document.getElementById('totalLeaveDays').textContent = analytics.total_leave_days || 0;
-    document.getElementById('totalScheduledDays').textContent = analytics.total_scheduled_days || 0;
-    document.getElementById('availabilityRate').textContent = (analytics.availability_rate || 0) + '%';
+    console.log('Updating summary stats:', analytics); // Debug log
+    
+    const elements = {
+        'totalAvailabilityHours': analytics.total_availability_hours || 0,
+        'totalBusyHours': analytics.total_busy_hours || 0,
+        'totalLeaveDays': analytics.total_leave_days || 0,
+        'totalScheduledDays': analytics.total_scheduled_days || 0,
+        'availabilityRate': (analytics.availability_rate || 0) + '%'
+    };
+    
+    for (const [id, value] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        } else {
+            console.warn(`Element with ID '${id}' not found`);
+        }
+    }
 }
 
 function updateAvailabilityTable(data) {
     const tbody = document.getElementById('availabilityTableBody');
+    console.log('Updating table with data:', data.length, 'entries'); // Debug log
+    
+    if (!tbody) {
+        console.error('Table body element not found!');
+        return;
+    }
     
     if (data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No availability data found</td></tr>';
@@ -157,7 +176,7 @@ function updateAvailabilityTable(data) {
             <tr>
                 <td>${date}</td>
                 <td>${entry.username}</td>
-                <td>${entry.type}</td>
+                <td style="text-transform: capitalize;">${entry.type}</td>
                 <td>${entry.start_time || '--'}</td>
                 <td>${entry.end_time || '--'}</td>
                 <td>${statusBadge}</td>
@@ -167,6 +186,7 @@ function updateAvailabilityTable(data) {
     });
     
     tbody.innerHTML = html;
+    console.log('Table updated successfully with', data.length, 'rows');
 }
 
 function getStatusClass(type) {
