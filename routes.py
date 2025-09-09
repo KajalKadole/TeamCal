@@ -1646,16 +1646,29 @@ def availability_analytics():
         availability_data.sort(key=lambda x: x['date'], reverse=True)
         
         # Calculate analytics
+        def calculate_duration_hours(start_time, end_time):
+            """Calculate duration in hours between two time objects"""
+            if not start_time or not end_time:
+                return 0
+            # Convert time objects to datetime objects for the same day
+            base_date = datetime.now().date()
+            start_dt = datetime.combine(base_date, start_time)
+            end_dt = datetime.combine(base_date, end_time)
+            
+            # Handle case where end time is next day (e.g., night shift)
+            if end_dt < start_dt:
+                end_dt += timedelta(days=1)
+            
+            return (end_dt - start_dt).total_seconds() / 3600
+        
         total_availability_hours = sum([
-            (slot.end_time - slot.start_time).total_seconds() / 3600 
+            calculate_duration_hours(slot.start_time, slot.end_time)
             for slot in availability_slots 
-            if slot.start_time and slot.end_time
         ])
         
         total_busy_hours = sum([
-            (slot.end_time - slot.start_time).total_seconds() / 3600 
+            calculate_duration_hours(slot.start_time, slot.end_time)
             for slot in busy_slots 
-            if slot.start_time and slot.end_time
         ])
         
         total_leave_days = len(leave_days)
