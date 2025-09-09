@@ -16,6 +16,8 @@ let charts = {
 };
 
 function initializeAnalytics() {
+    console.log('Initializing analytics dashboard...'); // Debug log
+    
     // Create chart instances
     createCharts();
     
@@ -154,11 +156,13 @@ function createCharts() {
 }
 
 function loadAnalyticsData() {
+    console.log('Loading analytics data...'); // Debug log
     showLoading();
     
     // Get selected time range
     const timeRangeFilter = document.getElementById('timeRangeFilter');
     const days = timeRangeFilter ? timeRangeFilter.value : '30';
+    console.log('Loading analytics for', days, 'days'); // Debug log
     
     // Load all analytics data with time range
     Promise.all([
@@ -167,9 +171,10 @@ function loadAnalyticsData() {
         loadUserProductivity(days),
         loadStatusDistribution(days)
     ]).then(() => {
+        console.log('All analytics data loaded successfully'); // Debug log
         hideLoading();
     }).catch(error => {
-        console.error('Error loading analytics:', error);
+        console.error('Analytics loading failed:', error.message || error);
         hideLoading();
         showError('Failed to load analytics data');
     });
@@ -188,14 +193,21 @@ function loadOverviewData(days) {
 }
 
 function loadWorkHoursTrend(days) {
+    console.log('Loading work hours trend for', days, 'days...'); // Debug log
     return fetch(`/api/analytics/work-hours-trend?days=${days}`)
         .then(response => response.json())
         .then(data => {
+            console.log('Work hours trend response:', data); // Debug log
             if (data.success) {
                 updateWorkHoursTrendChart(data.data);
             } else {
+                console.error('Work hours trend API error:', data.error);
                 throw new Error(data.error);
             }
+        })
+        .catch(error => {
+            console.error('Work hours trend fetch failed:', error.message || error);
+            throw error;
         });
 }
 
@@ -229,14 +241,21 @@ function loadUserProductivity(days) {
 }
 
 function loadStatusDistribution(days) {
+    console.log('Loading status distribution for', days, 'days...'); // Debug log
     return fetch(`/api/analytics/status-distribution?days=${days}`)
         .then(response => response.json())
         .then(data => {
+            console.log('Status distribution response:', data); // Debug log
             if (data.success) {
                 updateStatusDistributionChart(data.data);
             } else {
+                console.error('Status distribution API error:', data.error);
                 throw new Error(data.error);
             }
+        })
+        .catch(error => {
+            console.error('Status distribution fetch failed:', error.message || error);
+            throw error;
         });
 }
 
