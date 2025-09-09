@@ -56,7 +56,7 @@ function loadTimesheetStatus() {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Failed to load timesheet status:', error.message || error);
             showAlert('Failed to load timesheet status', 'danger');
         });
 }
@@ -169,7 +169,7 @@ function clockIn() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Clock in failed:', error.message || error);
         showAlert('Failed to clock in', 'danger');
     });
 }
@@ -226,7 +226,7 @@ function confirmClockOut() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Clock out failed:', error.message || error);
         showAlert('Failed to clock out', 'danger');
     });
 }
@@ -262,7 +262,7 @@ function updateStatus() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Status update failed:', error.message || error);
         showAlert('Failed to update status', 'danger');
     });
 }
@@ -280,7 +280,7 @@ function loadTeamStatus() {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Team status load failed:', error.message || error);
         });
 }
 
@@ -368,7 +368,7 @@ function loadTimesheetEntries() {
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Timesheet entries load failed:', error.message || error);
             showAlert('Failed to load timesheet entries', 'danger');
         });
 }
@@ -511,7 +511,7 @@ function startBreak() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Start break failed:', error.message || error);
         showAlert('Failed to start break', 'danger');
     });
 }
@@ -711,7 +711,7 @@ function checkAutoCheckout() {
             }
         })
         .catch(error => {
-            console.error('Auto checkout error:', error);
+            console.error('Auto checkout failed:', error.message || error);
         });
     }
 }
