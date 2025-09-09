@@ -112,18 +112,20 @@ function loadAnalytics() {
     fetch(`/api/availability/analytics?${params}`)
         .then(response => response.json())
         .then(data => {
+            console.log('Analytics API Response:', data); // Debug log
             if (data.success) {
                 currentData = data.data;
                 updateSummaryStats(data.analytics);
                 updateAvailabilityTable(data.data);
                 document.getElementById('dataCount').textContent = `${data.data.length} entries`;
             } else {
+                console.error('Analytics API Error:', data.error);
                 showAlert('Error loading analytics: ' + data.error, 'danger');
                 updateAvailabilityTable([]);
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Analytics fetch failed:', error.message || error);
             showAlert('Failed to load availability analytics', 'danger');
             updateAvailabilityTable([]);
         });
