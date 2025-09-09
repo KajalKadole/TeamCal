@@ -1295,10 +1295,10 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
         // For leave days, just show the date
         dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } else {
-        // For availability and busy slots, show date and time
+        // For availability and busy slots
         if (startDate.toDateString() === endDate.toDateString()) {
-            // Same day
-            dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+            // Single day - just show date for compact display
+            dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         } else {
             // Multiple days
             dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
@@ -1316,9 +1316,19 @@ function createGanttBar(timelineRow, event, weeks, userColor) {
     const startOffset = startWeekIndex * cellWidth;
     let width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
     
-    // Position the bar in the correct week cell - make it span properly
-    bar.style.left = `${startOffset + 0.5}%`; // Small margin from cell start
-    bar.style.width = `${Math.max(width - 1, 7)}%`; // Ensure good width spanning
+    // For single day events, ensure minimum visible width
+    if (startWeekIndex === endWeekIndex) {
+        // Single day event - give it a minimum width within the week
+        const minWidthPercentage = 8; // Minimum 8% width for visibility
+        width = Math.max(width * 0.8, minWidthPercentage); // Take 80% of week or minimum
+        bar.style.left = `${startOffset + 1}%`; // Small margin from cell start
+        bar.style.width = `${width}%`;
+    } else {
+        // Multi-day event - span across weeks
+        bar.style.left = `${startOffset + 0.5}%`; // Small margin from cell start
+        bar.style.width = `${Math.max(width - 1, 7)}%`; // Ensure good width spanning
+    }
+    
     bar.style.top = '20px'; // Position from top of row
     bar.style.position = 'absolute';
     

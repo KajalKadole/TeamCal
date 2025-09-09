@@ -252,8 +252,8 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 0 8px;
-    font-size: 0.75rem;
+    padding: 0 6px;
+    font-size: 0.7rem;
     font-weight: 500;
     color: white;
     overflow: hidden;
@@ -262,7 +262,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
-    min-width: 60px;
+    min-width: 40px; /* Smaller minimum for single day events */
     z-index: 5;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
