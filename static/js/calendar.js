@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
         height: 'auto',
+        selectable: true,
+        selectMirror: true,
+        selectOverlap: false,
         slotLabelFormat: {
             hour: 'numeric',
             minute: '2-digit',
@@ -67,8 +70,18 @@ document.addEventListener('DOMContentLoaded', function() {
             showEventDetails(info.event);
         },
         dateClick: function(info) {
-            // Pre-fill date when clicking on calendar
-            document.getElementById('eventDate').value = info.dateStr;
+            // Quick add availability on single day click
+            showQuickAvailabilityModal(info.dateStr, info.dateStr);
+        },
+        select: function(info) {
+            // Handle date range selection for multi-day availability
+            const startDate = info.startStr;
+            const endDate = new Date(info.end);
+            endDate.setDate(endDate.getDate() - 1); // FullCalendar end is exclusive
+            const endDateStr = endDate.toISOString().split('T')[0];
+            
+            showQuickAvailabilityModal(startDate, endDateStr);
+            calendar.unselect(); // Clear selection
         },
         eventDidMount: function(info) {
             // Add tooltips to events
@@ -129,6 +142,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     calendar.render();
+    
+    // Add CSS for drag selection feedback
+    const style = document.createElement('style');
+    style.textContent = `
+        .fc-highlight {
+            background-color: rgba(66, 133, 244, 0.3) !important;
+            border: 2px dashed #4285f4 !important;
+        }
+        .fc-select-mirror {
+            background-color: rgba(66, 133, 244, 0.4) !important;
+            border: 2px solid #4285f4 !important;
+            opacity: 0.8;
+        }
+    `;
+    document.head.appendChild(style);
     
     // Set up new filtering system
     setupCalendarFilters();
@@ -1450,6 +1478,240 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     bar.style.position = 'absolute';
     
     timelineRow.appendChild(bar);
+}
+
+// Quick availability modal for drag/click selection
+function showQuickAvailabilityModal(startDate, endDate) {
+    const isMultiDay = startDate !== endDate;
+    
+    // Create quick modal HTML
+    const modalHtml = `
+        <div class="modal fade" id="quickAvailabilityModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-clock me-2"></i>
+                            Add Availability ${isMultiDay ? `(${startDate} to ${endDate})` : `(${startDate})`}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="quickAvailabilityForm">
+                            <input type="hidden" id="quickStartDate" value="${startDate}">
+                            <input type="hidden" id="quickEndDate" value="${endDate}">
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Available From</label>
+                                    <div class="row">
+                                        <div class="col-5">
+                                            <select id="quickStartHour" class="form-select" required>
+                                                <option value="9" selected>9</option>
+                                                <option value="8">8</option>
+                                                <option value="10">10</option>
+                                                <option value="7">7</option>
+                                                <option value="11">11</option>
+                                                <option value="12">12</option>
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                                <option value="5">5</option>
+                                                <option value="6">6</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-4">
+                                            <select id="quickStartMinute" class="form-select">
+                                                <option value="00" selected>00</option>
+                                                <option value="15">15</option>
+                                                <option value="30">30</option>
+                                                <option value="45">45</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-3">
+                                            <select id="quickStartAmPm" class="form-select">
+                                                <option value="AM" selected>AM</option>
+                                                <option value="PM">PM</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Available Until</label>
+                                    <div class="row">
+                                        <div class="col-5">
+                                            <select id="quickEndHour" class="form-select" required>
+                                                <option value="5" selected>5</option>
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="4">4</option>
+                                                <option value="6">6</option>
+                                                <option value="7">7</option>
+                                                <option value="8">8</option>
+                                                <option value="9">9</option>
+                                                <option value="10">10</option>
+                                                <option value="11">11</option>
+                                                <option value="12">12</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-4">
+                                            <select id="quickEndMinute" class="form-select">
+                                                <option value="00" selected>00</option>
+                                                <option value="15">15</option>
+                                                <option value="30">30</option>
+                                                <option value="45">45</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-3">
+                                            <select id="quickEndAmPm" class="form-select">
+                                                <option value="AM">AM</option>
+                                                <option value="PM" selected>PM</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" onclick="submitQuickAvailability()">
+                            <i class="fas fa-check me-1"></i>Add Availability
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing quick modal if any
+    const existingModal = document.getElementById('quickAvailabilityModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('quickAvailabilityModal'));
+    modal.show();
+    
+    // Clean up when modal is hidden
+    document.getElementById('quickAvailabilityModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+// Submit quick availability
+function submitQuickAvailability() {
+    const startDate = document.getElementById('quickStartDate').value;
+    const endDate = document.getElementById('quickEndDate').value;
+    const startHour = document.getElementById('quickStartHour').value;
+    const startMinute = document.getElementById('quickStartMinute').value;
+    const startAmPm = document.getElementById('quickStartAmPm').value;
+    const endHour = document.getElementById('quickEndHour').value;
+    const endMinute = document.getElementById('quickEndMinute').value;
+    const endAmPm = document.getElementById('quickEndAmPm').value;
+    
+    // Convert to 24-hour format
+    let startHour24 = parseInt(startHour);
+    if (startAmPm === 'PM' && startHour24 !== 12) startHour24 += 12;
+    if (startAmPm === 'AM' && startHour24 === 12) startHour24 = 0;
+    
+    let endHour24 = parseInt(endHour);
+    if (endAmPm === 'PM' && endHour24 !== 12) endHour24 += 12;
+    if (endAmPm === 'AM' && endHour24 === 12) endHour24 = 0;
+    
+    const startTime = `${startHour24.toString().padStart(2, '0')}:${startMinute}`;
+    const endTime = `${endHour24.toString().padStart(2, '0')}:${endMinute}`;
+    
+    if (startDate === endDate) {
+        // Single day availability
+        const data = {
+            date: startDate,
+            start_time: startTime,
+            end_time: endTime,
+            recurring: false
+        };
+        
+        fetch('/api/availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Close modal and refresh calendar
+                bootstrap.Modal.getInstance(document.getElementById('quickAvailabilityModal')).hide();
+                calendar.refetchEvents();
+                showAlert('Availability added successfully!', 'success');
+            } else {
+                showAlert('Error adding availability: ' + result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error adding availability: ' + error.message, 'danger');
+        });
+    } else {
+        // Multi-day availability
+        const data = {
+            start_date: startDate,
+            end_date: endDate,
+            start_time: startTime,
+            end_time: endTime
+        };
+        
+        fetch('/api/multi-availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                // Close modal and refresh calendar
+                bootstrap.Modal.getInstance(document.getElementById('quickAvailabilityModal')).hide();
+                calendar.refetchEvents();
+                showAlert(`Multi-day availability added successfully! (${result.count} days)`, 'success');
+            } else {
+                showAlert('Error adding multi-day availability: ' + result.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error adding multi-day availability: ' + error.message, 'danger');
+        });
+    }
+}
+
+// Show alert messages
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // Add to top of page
+    const container = document.querySelector('.container-fluid') || document.body;
+    container.insertAdjacentHTML('afterbegin', alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = container.querySelector('.alert');
+        if (alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }
+    }, 5000);
 }
 
 // Get week number
