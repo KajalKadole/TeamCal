@@ -1,18 +1,92 @@
 /* Custom styles for Ziqsy Team Calendar */
 
+/* Gantt Chart Style Events */
+.fc-event {
+    border-radius: 4px !important;
+    border-width: 2px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    margin: 1px 0 !important;
+    position: relative !important;
+}
+
+/* Gantt-like appearance for events */
+.fc-event.gantt-style {
+    border-left-width: 4px !important;
+    border-radius: 0 4px 4px 0 !important;
+    background: linear-gradient(90deg, transparent 0px, currentColor 4px, rgba(255,255,255,0.1) 4px) !important;
+    min-height: 20px !important;
+}
+
+/* Multi-day event styling */
+.fc-event.multi-day {
+    border-radius: 2px !important;
+    border-left-width: 6px !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.fc-event.multi-day::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(45deg, 
+        transparent 25%, 
+        rgba(255,255,255,0.3) 25%, 
+        rgba(255,255,255,0.3) 50%, 
+        transparent 50%, 
+        transparent 75%, 
+        rgba(255,255,255,0.3) 75%);
+    background-size: 8px 8px;
+    animation: gantt-pattern 1s linear infinite;
+}
+
+@keyframes gantt-pattern {
+    0% { background-position: 0 0; }
+    100% { background-position: 8px 8px; }
+}
+
+/* User color indicators */
+.fc-event.user-event {
+    position: relative !important;
+}
+
+.fc-event.user-event::after {
+    content: attr(data-username);
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7em;
+    font-weight: bold;
+    opacity: 0.8;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Event type specific styling */
 .calendar-event-available {
-    background-color: var(--bs-success) !important;
-    border-color: var(--bs-success) !important;
+    background: linear-gradient(135deg, var(--event-color, #28a745) 0%, rgba(255,255,255,0.1) 100%) !important;
+    border-color: var(--event-color, #28a745) !important;
 }
 
 .calendar-event-busy {
-    background-color: var(--bs-danger) !important;
-    border-color: var(--bs-danger) !important;
+    background: linear-gradient(135deg, var(--event-color, #dc3545) 0%, rgba(0,0,0,0.2) 100%) !important;
+    border-color: var(--event-color, #dc3545) !important;
 }
 
 .calendar-event-leave {
-    background-color: var(--bs-warning) !important;
-    border-color: var(--bs-warning) !important;
+    background: repeating-linear-gradient(
+        45deg,
+        var(--event-color, #ffc107),
+        var(--event-color, #ffc107) 10px,
+        rgba(255,255,255,0.3) 10px,
+        rgba(255,255,255,0.3) 20px
+    ) !important;
+    border-color: var(--event-color, #ffc107) !important;
     color: var(--bs-dark) !important;
 }
 

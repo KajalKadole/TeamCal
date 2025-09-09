@@ -412,6 +412,36 @@ def add_employee():
     return redirect(url_for('admin'))
 
 # API Endpoints for Calendar Data
+def generate_user_color(user_id, username):
+    """Generate a unique color for each user based on their ID and username"""
+    # Color palette for users - distinct, professional colors
+    colors = [
+        '#3498db',  # Blue
+        '#e74c3c',  # Red
+        '#2ecc71',  # Green
+        '#f39c12',  # Orange
+        '#9b59b6',  # Purple
+        '#1abc9c',  # Turquoise
+        '#e67e22',  # Carrot
+        '#34495e',  # Dark blue-gray
+        '#16a085',  # Dark turquoise
+        '#27ae60',  # Dark green
+        '#d35400',  # Dark orange
+        '#8e44ad',  # Dark purple
+        '#2980b9',  # Dark blue
+        '#c0392b',  # Dark red
+        '#7f8c8d',  # Gray
+        '#95a5a6',  # Light gray
+        '#f1c40f',  # Yellow
+        '#e91e63',  # Pink
+        '#ff5722',  # Deep orange
+        '#607d8b'   # Blue gray
+    ]
+    
+    # Use user_id to determine color, cycling through the palette
+    color_index = (user_id - 1) % len(colors)
+    return colors[color_index]
+
 @app.route('/api/events')
 @login_required
 def get_events():
@@ -443,6 +473,9 @@ def get_events():
         users = [current_user]
     
     for user in users:
+        # Generate unique color for this user
+        user_color = generate_user_color(user.id, user.username)
+        
         # Availability slots
         availability_slots = AvailabilitySlot.query.filter_by(user_id=user.id).all()
         for slot in availability_slots:
@@ -451,26 +484,36 @@ def get_events():
                 'title': f'{user.username} - Available',
                 'start': f'{slot.date}T{slot.start_time}',
                 'end': f'{slot.date}T{slot.end_time}',
-                'color': '#28a745',
+                'color': user_color,
+                'borderColor': user_color,
+                'backgroundColor': user_color + '20',  # 20% opacity background
                 'user_id': user.id,
-                'type': 'availability'
+                'username': user.username,
+                'type': 'availability',
+                'display': 'block'  # For Gantt-like appearance
             })
         
-        # Busy slots
+        # Busy slots - darker version of user color
         busy_slots = BusySlot.query.filter_by(user_id=user.id).all()
         for slot in busy_slots:
+            # Create darker version for busy slots
+            busy_color = user_color.replace('#', '#') + 'DD'  # Darker opacity
             events.append({
                 'id': f'busy-{slot.id}',
                 'title': f'{user.username} - {slot.title}',
                 'start': f'{slot.date}T{slot.start_time}',
                 'end': f'{slot.date}T{slot.end_time}',
-                'color': '#dc3545',
+                'color': user_color,
+                'borderColor': user_color,
+                'backgroundColor': user_color + '80',  # 80% opacity for busy
                 'user_id': user.id,
+                'username': user.username,
                 'type': 'busy',
-                'description': slot.description
+                'description': slot.description,
+                'display': 'block'  # For Gantt-like appearance
             })
         
-        # Leave days
+        # Leave days - user color with pattern
         leave_days = LeaveDay.query.filter_by(user_id=user.id).all()
         for leave in leave_days:
             events.append({
@@ -478,10 +521,14 @@ def get_events():
                 'title': f'{user.username} - {leave.leave_type}',
                 'start': f'{leave.date}',
                 'allDay': True,
-                'color': '#ffc107',
+                'color': user_color,
+                'borderColor': user_color,
+                'backgroundColor': user_color + '40',  # 40% opacity for leave
                 'user_id': user.id,
+                'username': user.username,
                 'type': 'leave',
-                'notes': leave.notes
+                'notes': leave.notes,
+                'display': 'block'  # For Gantt-like appearance
             })
     
     return jsonify(events)

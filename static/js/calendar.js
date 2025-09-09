@@ -72,9 +72,42 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Add custom classes based on event type
             const eventType = info.event.extendedProps.type;
+            const username = info.event.extendedProps.username;
+            
             if (eventType) {
                 info.el.classList.add(`calendar-event-${eventType}`);
             }
+            
+            // Add Gantt-style classes
+            info.el.classList.add('gantt-style', 'user-event');
+            
+            // Set custom color as CSS variable
+            if (info.event.color) {
+                info.el.style.setProperty('--event-color', info.event.color);
+            }
+            
+            // Add username data attribute for CSS ::after content
+            if (username) {
+                info.el.setAttribute('data-username', username.substring(0, 3).toUpperCase());
+            }
+            
+            // Check if event spans multiple days
+            const start = info.event.start;
+            const end = info.event.end;
+            
+            if (start && end) {
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+                const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                
+                if (daysDiff > 1 || info.event.allDay) {
+                    info.el.classList.add('multi-day');
+                }
+            }
+            
+            // Enhanced tooltip with user info
+            const tooltipText = `${info.event.title}\nTime: ${info.event.start ? info.event.start.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}) : 'All Day'} - ${info.event.end ? info.event.end.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'}) : 'All Day'}\nUser: ${username || 'Unknown'}`;
+            info.el.setAttribute('title', tooltipText);
         },
         dayCellDidMount: function(info) {
             // Add team member info to each day cell
