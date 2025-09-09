@@ -247,15 +247,15 @@
 
 .gantt-month-cell {
     flex: 1;
-    min-width: 160px;
+    min-width: 120px;
     border-right: 2px solid var(--bs-border-color);
     position: relative;
-    padding: 6px;
+    padding: 4px;
     background: var(--bs-body-bg);
     background-image: 
         linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.03) 1px, transparent 1px),
         linear-gradient(rgba(var(--bs-border-color-rgb), 0.2) 1px, transparent 1px);
-    background-size: 25px 25px;
+    background-size: 20px 20px;
     transition: all 0.3s ease;
     overflow: visible;
 }
