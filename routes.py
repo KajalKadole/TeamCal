@@ -1302,6 +1302,8 @@ def analytics():
 @login_required
 def analytics_overview():
     """Get overview analytics data"""
+    if not current_user.is_authenticated:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
     
@@ -1363,6 +1365,8 @@ def analytics_overview():
 @login_required
 def analytics_work_hours_trend():
     """Get work hours trend data for charts"""
+    if not current_user.is_authenticated:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
     
@@ -1409,6 +1413,8 @@ def analytics_work_hours_trend():
 @login_required 
 def analytics_user_productivity():
     """Get user productivity metrics"""
+    if not current_user.is_authenticated:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
     
@@ -1451,6 +1457,8 @@ def analytics_user_productivity():
 @login_required
 def analytics_status_distribution():
     """Get current status distribution across team"""
+    if not current_user.is_authenticated:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
     

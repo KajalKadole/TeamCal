@@ -1,5 +1,8 @@
 // Analytics Dashboard JavaScript
+console.log('Analytics.js file loaded successfully!'); // Basic test
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, starting analytics initialization...'); // Basic test
     // Initialize charts and load data
     initializeAnalytics();
     
