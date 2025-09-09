@@ -256,13 +256,13 @@
 .gantt-bar {
     position: absolute;
     top: 20px;
-    height: 24px;
-    border-radius: 12px; /* Make it oval-shaped */
+    height: 28px;
+    border-radius: 14px; /* More oval-shaped */
     display: flex;
     align-items: center;
     justify-content: center; /* Center the text */
-    padding: 0 8px;
-    font-size: 0.65rem;
+    padding: 0 12px;
+    font-size: 0.7rem;
     font-weight: 600;
     color: white;
     overflow: hidden;
@@ -271,10 +271,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: center;
-    min-width: 60px; /* Wider minimum for date text */
+    min-width: 80px; /* Wider minimum for better appearance */
     z-index: 5;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3); /* Better text visibility */
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4); /* Better text visibility */
+    border: 2px solid rgba(255,255,255,0.2); /* Subtle border for definition */
 }
 
 

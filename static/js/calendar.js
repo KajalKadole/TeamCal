@@ -1453,38 +1453,29 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     
     // Position bar based on view type
     if (currentTimelineView === 'week') {
-        // Week view - position based on actual days within the week
+        // Week view - make bars longer and more spread out
         const dayWidth = cellWidth / 7;
         
         if (startPeriodIndex === endPeriodIndex) {
-            // Single week event - position precisely within the week
-            const period = periods[startPeriodIndex];
-            const eventStartDay = Math.floor((eventStart - period) / (1000 * 60 * 60 * 24));
-            const eventEndDay = Math.floor((eventEnd - period) / (1000 * 60 * 60 * 24));
-            
-            const startDayOffset = Math.max(0, eventStartDay) * dayWidth;
-            const actualDaySpan = Math.min(eventEndDay - Math.max(0, eventStartDay) + 1, 7);
-            const eventWidth = actualDaySpan * dayWidth;
-            
-            bar.style.left = `${startOffset + startDayOffset + 0.3}%`;
-            bar.style.width = `${Math.max(eventWidth - 0.6, dayWidth * 0.8)}%`;
+            // Single week event - make it span most of the week column
+            bar.style.left = `${startOffset + 1}%`;
+            bar.style.width = `${Math.max(cellWidth - 2, 4)}%`;
         } else {
-            // Multi-week event - span across weeks with proper positioning
+            // Multi-week event - span across weeks with generous width
             bar.style.left = `${startOffset + 0.5}%`;
-            bar.style.width = `${Math.max(width - 1, 8)}%`;
+            bar.style.width = `${Math.max(width - 1, 12)}%`;
         }
     } else {
-        // Month view - position bars correctly within month columns
-        // Calculate exact position within the month column
-        const monthPadding = 1.5; // Small padding from column edges
+        // Month view - make bars longer and fill more of the month column
+        const monthPadding = 0.8; // Smaller padding for longer bars
         bar.style.left = `${startOffset + monthPadding}%`;
-        bar.style.width = `${Math.max(width - (monthPadding * 2), cellWidth * 0.8)}%`;
+        bar.style.width = `${Math.max(width - (monthPadding * 2), cellWidth * 0.9)}%`;
     }
     
-    // Stack bars vertically to prevent overlap
-    const barHeight = 24;
-    const barSpacing = 30; // Space between bars (increased for oval bars)
-    bar.style.top = `${15 + (barIndex * barSpacing)}px`; // Stack bars vertically
+    // Stack bars vertically with better spacing
+    const barHeight = 28;
+    const barSpacing = 35; // More space between bars for cleaner look
+    bar.style.top = `${12 + (barIndex * barSpacing)}px`; // Stack bars vertically with better positioning
     bar.style.position = 'absolute';
     
     timelineRow.appendChild(bar);
