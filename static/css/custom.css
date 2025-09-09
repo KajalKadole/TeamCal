@@ -145,6 +145,11 @@
     font-size: 0.8rem;
 }
 
+.gantt-month-header.month-view {
+    min-width: 120px;
+    font-size: 0.9rem;
+}
+
 .gantt-month-header:last-child {
     border-right: none;
 }
@@ -230,6 +235,10 @@
     background: #fff;
     min-height: 120px;
     overflow: visible;
+}
+
+.gantt-month-cell.month-view {
+    min-width: 120px;
 }
 
 .gantt-month-cell:last-child {

@@ -3,6 +3,7 @@ let currentEventType = null;
 let selectedEvent = null;
 let allEvents = [];
 let currentView = 'calendar';
+let currentTimelineView = 'week'; // 'week' or 'month'
 let ganttData = [];
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -1178,6 +1179,27 @@ function loadGanttChart() {
         });
 }
 
+// Switch timeline view between week and month
+function switchTimelineView(viewType) {
+    currentTimelineView = viewType;
+    
+    const weekBtn = document.getElementById('weekViewBtn');
+    const monthBtn = document.getElementById('monthViewBtn');
+    
+    if (viewType === 'week') {
+        weekBtn.classList.add('active');
+        monthBtn.classList.remove('active');
+    } else {
+        weekBtn.classList.remove('active');
+        monthBtn.classList.add('active');
+    }
+    
+    // Re-render the chart with new view
+    if (ganttData) {
+        renderGanttChart(ganttData);
+    }
+}
+
 // Render the Gantt chart
 function renderGanttChart(data) {
     const timelineHeader = document.getElementById('ganttTimelineHeader');
@@ -1189,35 +1211,51 @@ function renderGanttChart(data) {
     sidebar.innerHTML = '';
     timeline.innerHTML = '';
     
-    // Generate timeline headers (weeks for 12 weeks - start from 4 weeks ago to include past events)
-    const startDate = new Date();
-    // Get start of current week (Monday)
-    const dayOfWeek = startDate.getDay();
-    const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    startDate.setDate(diff);
+    let periods = [];
+    let totalColumns = 0;
     
-    // Go back 4 weeks to show past availability
-    startDate.setDate(startDate.getDate() - (4 * 7));
-    
-    const weeks = [];
-    for (let i = 0; i < 16; i++) { // Show 16 weeks total (4 past + 12 future)
-        const weekStart = new Date(startDate);
-        weekStart.setDate(startDate.getDate() + (i * 7));
-        weeks.push(weekStart);
+    if (currentTimelineView === 'week') {
+        // Generate week timeline (16 weeks - 4 past + 12 future)
+        const startDate = new Date();
+        const dayOfWeek = startDate.getDay();
+        const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        startDate.setDate(diff);
+        startDate.setDate(startDate.getDate() - (4 * 7));
+        
+        totalColumns = 16;
+        for (let i = 0; i < 16; i++) {
+            const weekStart = new Date(startDate);
+            weekStart.setDate(startDate.getDate() + (i * 7));
+            periods.push(weekStart);
+        }
+    } else {
+        // Generate month timeline (12 months - 2 past + 10 future)
+        const currentDate = new Date();
+        const startMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
+        
+        totalColumns = 12;
+        for (let i = 0; i < 12; i++) {
+            const monthStart = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
+            periods.push(monthStart);
+        }
     }
     
-    // Create week headers
-    weeks.forEach((week, index) => {
-        const weekHeader = document.createElement('div');
-        weekHeader.className = 'gantt-month-header'; // Reuse existing styling
+    // Create timeline headers
+    periods.forEach((period, index) => {
+        const header = document.createElement('div');
+        header.className = 'gantt-month-header';
         
-        // Create week title
-        const weekTitle = document.createElement('div');
-        weekTitle.className = 'gantt-week-title';
-        weekTitle.textContent = `Week ${index + 1}`;
+        const title = document.createElement('div');
+        title.className = 'gantt-week-title';
         
-        weekHeader.appendChild(weekTitle);
-        timelineHeader.appendChild(weekHeader);
+        if (currentTimelineView === 'week') {
+            title.textContent = `Week ${index + 1}`;
+        } else {
+            title.textContent = period.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        }
+        
+        header.appendChild(title);
+        timelineHeader.appendChild(header);
     });
     
     // Render user rows
@@ -1235,12 +1273,11 @@ function renderGanttChart(data) {
         const timelineRow = document.createElement('div');
         timelineRow.className = 'gantt-timeline-row';
         
-        // Create week cells
-        weeks.forEach((week, weekIndex) => {
-            const weekCell = document.createElement('div');
-            weekCell.className = 'gantt-month-cell'; // Reuse existing styling
-            
-            timelineRow.appendChild(weekCell);
+        // Create period cells
+        periods.forEach((period, periodIndex) => {
+            const cell = document.createElement('div');
+            cell.className = 'gantt-month-cell';
+            timelineRow.appendChild(cell);
         });
         
         timeline.appendChild(timelineRow);
@@ -1248,7 +1285,7 @@ function renderGanttChart(data) {
         // Group events into continuous periods and create bars
         const groupedEvents = groupContinuousEvents(user.events);
         groupedEvents.forEach((eventGroup, index) => {
-            createGanttBar(timelineRow, eventGroup, weeks, user.color, index);
+            createGanttBar(timelineRow, eventGroup, periods, user.color, index);
         });
     });
 }
@@ -1307,35 +1344,44 @@ function createGroupEvent(eventGroup) {
 }
 
 // Create a Gantt bar for an event
-function createGanttBar(timelineRow, event, weeks, userColor, barIndex = 0) {
+function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     const eventStart = new Date(event.start);
     const eventEnd = new Date(event.end || event.start);
     
-    // Find which week cells this event spans
-    let startWeekIndex = -1;
-    let endWeekIndex = -1;
+    // Find which period cells this event spans
+    let startPeriodIndex = -1;
+    let endPeriodIndex = -1;
     
-    weeks.forEach((week, index) => {
-        const weekEnd = new Date(week);
-        weekEnd.setDate(week.getDate() + 6);
-        weekEnd.setHours(23, 59, 59, 999); // End of week day
+    periods.forEach((period, index) => {
+        let periodStart, periodEnd;
         
-        // Check if event starts in this week
-        if (eventStart >= week && eventStart <= weekEnd && startWeekIndex === -1) {
-            startWeekIndex = index;
+        if (currentTimelineView === 'week') {
+            periodStart = new Date(period);
+            periodEnd = new Date(period);
+            periodEnd.setDate(period.getDate() + 6);
+            periodEnd.setHours(23, 59, 59, 999);
+        } else {
+            periodStart = new Date(period);
+            periodEnd = new Date(period.getFullYear(), period.getMonth() + 1, 0);
+            periodEnd.setHours(23, 59, 59, 999);
         }
-        // Check if event ends in this week
-        if (eventEnd >= week && eventEnd <= weekEnd) {
-            endWeekIndex = index;
+        
+        // Check if event starts in this period
+        if (eventStart >= periodStart && eventStart <= periodEnd && startPeriodIndex === -1) {
+            startPeriodIndex = index;
+        }
+        // Check if event ends in this period
+        if (eventEnd >= periodStart && eventEnd <= periodEnd) {
+            endPeriodIndex = index;
         }
     });
     
-    if (startWeekIndex === -1) return;
-    if (endWeekIndex === -1) endWeekIndex = startWeekIndex;
+    if (startPeriodIndex === -1) return;
+    if (endPeriodIndex === -1) endPeriodIndex = startPeriodIndex;
     
     // Calculate position and width
-    const startCell = timelineRow.children[startWeekIndex];
-    const endCell = timelineRow.children[endWeekIndex];
+    const startCell = timelineRow.children[startPeriodIndex];
+    const endCell = timelineRow.children[endPeriodIndex];
     
     if (!startCell || !endCell) return;
     
@@ -1362,64 +1408,39 @@ function createGanttBar(timelineRow, event, weeks, userColor, barIndex = 0) {
     const eventType = event.type.charAt(0).toUpperCase() + event.type.slice(1);
     bar.title = `${eventType}\nDate: ${event.start}${event.end && event.end !== event.start ? ' - ' + event.end : ''}\nUser: ${event.title.split(' - ')[0]}`;
     
-    // Position the bar using percentage-based positioning for weeks
-    const cellWidth = 100 / 16; // 16 weeks total, each gets equal percentage
-    const startOffset = startWeekIndex * cellWidth;
-    let width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
+    // Position the bar using percentage-based positioning
+    const totalCols = currentTimelineView === 'week' ? 16 : 12;
+    const cellWidth = 100 / totalCols;
+    const startOffset = startPeriodIndex * cellWidth;
+    let width = (endPeriodIndex - startPeriodIndex + 1) * cellWidth;
     
-    // Calculate bar size and position based on actual days
-    const totalDays = Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24)) + 1;
-    const dayWidth = cellWidth / 7; // Each day is 1/7 of a week column
-    
-    if (startWeekIndex === endWeekIndex) {
-        // Single week event - position based on actual days within the week
-        const week = weeks[startWeekIndex];
+    // Position bar based on view type
+    if (currentTimelineView === 'week') {
+        // Week view - position based on actual days
+        const totalDays = Math.ceil((eventEnd - eventStart) / (1000 * 60 * 60 * 24)) + 1;
+        const dayWidth = cellWidth / 7;
         
-        // Calculate position within the week (0-6 days)
-        const eventStartDay = Math.floor((eventStart - week) / (1000 * 60 * 60 * 24));
-        const eventEndDay = Math.floor((eventEnd - week) / (1000 * 60 * 60 * 24));
-        
-        // Position and size based on actual day count
-        const startDayOffset = Math.max(0, eventStartDay) * dayWidth;
-        const actualDaySpan = Math.min(eventEndDay - Math.max(0, eventStartDay) + 1, 7);
-        const eventWidth = actualDaySpan * dayWidth;
-        
-        bar.style.left = `${startOffset + startDayOffset + 0.2}%`;
-        bar.style.width = `${Math.max(eventWidth - 0.4, dayWidth * 0.8)}%`;
-    } else {
-        // Multi-week event - calculate exact span across weeks
-        let totalEventWidth = 0;
-        let eventLeft = startOffset;
-        
-        // Calculate width by spanning across actual weeks
-        for (let weekIdx = startWeekIndex; weekIdx <= endWeekIndex; weekIdx++) {
-            const week = weeks[weekIdx];
-            const weekStart = new Date(week);
-            const weekEnd = new Date(week);
-            weekEnd.setDate(week.getDate() + 6);
+        if (startPeriodIndex === endPeriodIndex) {
+            // Single week event
+            const period = periods[startPeriodIndex];
+            const eventStartDay = Math.floor((eventStart - period) / (1000 * 60 * 60 * 24));
+            const eventEndDay = Math.floor((eventEnd - period) / (1000 * 60 * 60 * 24));
             
-            let weekEventStart, weekEventEnd;
+            const startDayOffset = Math.max(0, eventStartDay) * dayWidth;
+            const actualDaySpan = Math.min(eventEndDay - Math.max(0, eventStartDay) + 1, 7);
+            const eventWidth = actualDaySpan * dayWidth;
             
-            if (weekIdx === startWeekIndex) {
-                weekEventStart = eventStart;
-                weekEventEnd = weekEnd < eventEnd ? weekEnd : eventEnd;
-                // Calculate offset within first week
-                const dayOffset = Math.floor((eventStart - week) / (1000 * 60 * 60 * 24));
-                eventLeft = startOffset + (weekIdx * cellWidth) + (dayOffset * dayWidth);
-            } else if (weekIdx === endWeekIndex) {
-                weekEventStart = weekStart;
-                weekEventEnd = eventEnd;
-            } else {
-                weekEventStart = weekStart;
-                weekEventEnd = weekEnd;
-            }
-            
-            const weekDays = Math.ceil((weekEventEnd - weekEventStart) / (1000 * 60 * 60 * 24)) + 1;
-            totalEventWidth += weekDays * dayWidth;
+            bar.style.left = `${startOffset + startDayOffset + 0.2}%`;
+            bar.style.width = `${Math.max(eventWidth - 0.4, dayWidth * 0.8)}%`;
+        } else {
+            // Multi-week event - span across weeks
+            bar.style.left = `${startOffset + 0.5}%`;
+            bar.style.width = `${Math.max(width - 1, 7)}%`;
         }
-        
-        bar.style.left = `${eventLeft + 0.2}%`;
-        bar.style.width = `${Math.max(totalEventWidth - 0.4, dayWidth * 0.8)}%`;
+    } else {
+        // Month view - position within months
+        bar.style.left = `${startOffset + 1}%`;
+        bar.style.width = `${Math.max(width - 2, 6)}%`;
     }
     
     // Stack bars vertically to prevent overlap

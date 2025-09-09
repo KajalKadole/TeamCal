@@ -64,11 +64,24 @@
             <div class="card-body">
                 <div id="calendar"></div>
                 <div id="ganttChart" style="display: none;">
+                    <!-- Timeline View Controls -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Timeline View</h5>
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-primary active" id="weekViewBtn" onclick="switchTimelineView('week')">
+                                <i class="fas fa-calendar-week me-1"></i>Week View
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="monthViewBtn" onclick="switchTimelineView('month')">
+                                <i class="fas fa-calendar-alt me-1"></i>Month View
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="gantt-container">
                         <div class="gantt-header">
                             <div class="gantt-sidebar-header">Team Members</div>
                             <div class="gantt-timeline-header" id="ganttTimelineHeader">
-                                <!-- Month headers will be generated here -->
+                                <!-- Timeline headers will be generated here -->
                             </div>
                         </div>
                         <div class="gantt-body">
