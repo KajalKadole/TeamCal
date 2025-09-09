@@ -1284,16 +1284,51 @@ function createGanttBar(timelineRow, event, months, userColor) {
     const bar = document.createElement('div');
     bar.className = `gantt-bar ${event.type}`;
     bar.style.setProperty('--bar-color', userColor);
-    bar.textContent = event.title.replace(/^[^-]+ - /, ''); // Remove username prefix
-    bar.title = `${event.title}\n${event.start} - ${event.end || event.start}`;
     
-    // Position the bar using percentage-based positioning
+    // Format the date display
+    const startDate = new Date(event.start);
+    const endDate = event.end ? new Date(event.end) : startDate;
+    
+    let dateText = '';
+    if (event.type === 'leave') {
+        // For leave days, just show the date
+        dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else {
+        // For availability and busy slots, show date and time
+        if (startDate.toDateString() === endDate.toDateString()) {
+            // Same day
+            dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+        } else {
+            // Multiple days
+            dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        }
+    }
+    
+    bar.textContent = dateText;
+    
+    // Enhanced tooltip with full details
+    const eventType = event.type.charAt(0).toUpperCase() + event.type.slice(1);
+    bar.title = `${eventType}\nDate: ${event.start}${event.end && event.end !== event.start ? ' - ' + event.end : ''}\nUser: ${event.title.split(' - ')[0]}`;
+    
+    // Position the bar using percentage-based positioning with more precise placement
     const cellWidth = 100 / 6; // 6 months total, each gets equal percentage
     const startOffset = startMonthIndex * cellWidth;
-    const width = (endMonthIndex - startMonthIndex + 1) * cellWidth;
+    let width = (endMonthIndex - startMonthIndex + 1) * cellWidth;
     
-    bar.style.left = `${startOffset}%`;
-    bar.style.width = `calc(${width}% - 8px)`; // Subtract padding
+    // For single day events, ensure minimum width for readability
+    if (startMonthIndex === endMonthIndex && event.type !== 'leave') {
+        const eventStartDay = eventStart.getDate();
+        const monthStartDay = 1;
+        const monthEndDay = new Date(months[startMonthIndex].getFullYear(), months[startMonthIndex].getMonth() + 1, 0).getDate();
+        
+        // Position within the month based on the day
+        const dayOffset = ((eventStartDay - monthStartDay) / (monthEndDay - monthStartDay + 1)) * cellWidth;
+        bar.style.left = `${startOffset + dayOffset}%`;
+        bar.style.width = `120px`; // Fixed minimum width for readability
+    } else {
+        bar.style.left = `${startOffset}%`;
+        bar.style.width = `calc(${width}% - 8px)`; // Subtract padding
+    }
     
     timelineRow.appendChild(bar);
 }
