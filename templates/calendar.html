@@ -10,7 +10,7 @@
                 <div>
                     <h5 class="mb-0">
                         <i class="fas fa-calendar me-2"></i>
-                        {% if current_user.is_admin %}Master Calendar{% else %}My Calendar{% endif %}
+                        Team Calendar
                     </h5>
                     <small class="text-muted">
                         <i class="fas fa-globe me-1"></i>
@@ -33,7 +33,6 @@
                         </button>
                     </div>
                     
-                    {% if current_user.is_admin %}
                     <!-- Employee Filter Dropdown -->
                     <select class="form-select form-select-sm" id="userFilter" style="width: 200px;">
                         <option value="all">All Employees</option>
@@ -49,7 +48,6 @@
                         <option value="{{ department.id }}">{{ department.name }}</option>
                         {% endfor %}
                     </select>
-                    {% endif %}
                     <button class="btn btn-success btn-sm" onclick="showUnifiedAvailabilityModal()">
                         <i class="fas fa-plus me-1"></i>Add Availability
                     </button>

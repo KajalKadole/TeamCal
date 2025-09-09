@@ -453,24 +453,21 @@ def get_events():
     
     events = []
     
-    # Determine which users to show based on filter type
-    if current_user.is_admin:
-        if filter_type == 'individual' and user_filter:
-            if user_filter == 'all':
-                users = User.query.all()
-            else:
-                users = [User.query.get(int(user_filter))]
-        elif filter_type == 'department' and department_filter:
-            if department_filter == 'all':
-                users = User.query.all()
-            else:
-                users = User.query.filter_by(department_id=int(department_filter)).all()
-        elif filter_type == 'all':
+    # All users can now see team events - determine which users to show based on filter type
+    if filter_type == 'individual' and user_filter:
+        if user_filter == 'all':
             users = User.query.all()
         else:
+            users = [User.query.get(int(user_filter))]
+    elif filter_type == 'department' and department_filter:
+        if department_filter == 'all':
             users = User.query.all()
+        else:
+            users = User.query.filter_by(department_id=int(department_filter)).all()
+    elif filter_type == 'all':
+        users = User.query.all()
     else:
-        users = [current_user]
+        users = User.query.all()
     
     for user in users:
         # Generate unique color for this user
@@ -540,24 +537,21 @@ def get_gantt_data():
     department_filter = request.args.get('department_id')
     filter_type = request.args.get('filter_type', 'all')
     
-    # Determine which users to show based on filter type
-    if current_user.is_admin:
-        if filter_type == 'individual' and user_filter:
-            if user_filter == 'all':
-                users = User.query.all()
-            else:
-                users = [User.query.get(int(user_filter))]
-        elif filter_type == 'department' and department_filter:
-            if department_filter == 'all':
-                users = User.query.all()
-            else:
-                users = User.query.filter_by(department_id=int(department_filter)).all()
-        elif filter_type == 'all':
+    # All users can now see team timeline data - determine which users to show based on filter type
+    if filter_type == 'individual' and user_filter:
+        if user_filter == 'all':
             users = User.query.all()
         else:
+            users = [User.query.get(int(user_filter))]
+    elif filter_type == 'department' and department_filter:
+        if department_filter == 'all':
             users = User.query.all()
+        else:
+            users = User.query.filter_by(department_id=int(department_filter)).all()
+    elif filter_type == 'all':
+        users = User.query.all()
     else:
-        users = [current_user]
+        users = User.query.all()
     
     gantt_data = {'users': []}
     
