@@ -320,10 +320,7 @@ def update_user_department(user_id):
 @app.route('/api/departments')
 @login_required
 def get_departments_api():
-    """Get all departments for API use"""
-    if not current_user.is_admin:
-        return jsonify({'error': 'Access denied'}), 403
-    
+    """Get all departments for API use - accessible to all users"""
     departments = Department.query.order_by(Department.name).all()
     return jsonify({
         'departments': [{'id': d.id, 'name': d.name, 'description': d.description} for d in departments]
@@ -339,8 +336,9 @@ def logout():
 @app.route('/calendar')
 @login_required
 def calendar():
-    users = User.query.all() if current_user.is_admin else [current_user]
-    departments = Department.query.order_by(Department.name).all() if current_user.is_admin else []
+    # All users can now view all employees and departments for filtering
+    users = User.query.all()
+    departments = Department.query.order_by(Department.name).all()
     return render_template('calendar.html', users=users, departments=departments)
 
 @app.route('/profile', methods=['GET', 'POST'])
