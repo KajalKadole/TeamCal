@@ -1189,15 +1189,18 @@ function renderGanttChart(data) {
     sidebar.innerHTML = '';
     timeline.innerHTML = '';
     
-    // Generate timeline headers (weeks for 12 weeks)
+    // Generate timeline headers (weeks for 12 weeks - start from 4 weeks ago to include past events)
     const startDate = new Date();
     // Get start of current week (Monday)
     const dayOfWeek = startDate.getDay();
     const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
     startDate.setDate(diff);
     
+    // Go back 4 weeks to show past availability
+    startDate.setDate(startDate.getDate() - (4 * 7));
+    
     const weeks = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 16; i++) { // Show 16 weeks total (4 past + 12 future)
         const weekStart = new Date(startDate);
         weekStart.setDate(startDate.getDate() + (i * 7));
         weeks.push(weekStart);
@@ -1360,7 +1363,7 @@ function createGanttBar(timelineRow, event, weeks, userColor, barIndex = 0) {
     bar.title = `${eventType}\nDate: ${event.start}${event.end && event.end !== event.start ? ' - ' + event.end : ''}\nUser: ${event.title.split(' - ')[0]}`;
     
     // Position the bar using percentage-based positioning for weeks
-    const cellWidth = 100 / 12; // 12 weeks total, each gets equal percentage
+    const cellWidth = 100 / 16; // 16 weeks total, each gets equal percentage
     const startOffset = startWeekIndex * cellWidth;
     let width = (endWeekIndex - startWeekIndex + 1) * cellWidth;
     

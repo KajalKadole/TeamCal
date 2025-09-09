@@ -132,8 +132,8 @@
 
 .gantt-month-header {
     flex: 1;
-    min-width: 120px;
-    padding: 16px 8px;
+    min-width: 90px;
+    padding: 12px 6px;
     text-align: center;
     border-right: 1px solid var(--bs-border-color);
     background: #f8f9fa;
@@ -142,7 +142,7 @@
     flex-direction: column;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .gantt-month-header:last-child {
@@ -223,7 +223,7 @@
 
 .gantt-month-cell {
     flex: 1;
-    min-width: 120px;
+    min-width: 90px;
     border-right: 1px solid #e9ecef;
     position: relative;
     padding: 4px;
