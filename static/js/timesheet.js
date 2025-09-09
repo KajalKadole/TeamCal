@@ -130,6 +130,11 @@ function startDurationCounter() {
                 document.getElementById('breakDurationDisplay').textContent = 
                     `${breakHours.toString().padStart(2, '0')}:${breakMins.toString().padStart(2, '0')}`;
             }
+            
+            // Check for auto-checkout every 30 seconds
+            if (minutes % 1 === 0 && new Date().getSeconds() < 2) {
+                checkAutoCheckout();
+            }
         }
     }, 1000);
 }
@@ -674,14 +679,40 @@ function handleQuickDateSelect() {
 function checkAutoCheckout() {
     if (!currentStatus || !currentStatus.is_clocked_in) return;
     
-    const clockInTime = new Date(currentStatus.clock_in_time);
+    const clockInTime = new Date(currentStatus.clock_in);
     const now = new Date();
     const hoursWorked = (now - clockInTime) / (1000 * 60 * 60); // Convert to hours
     
     // Auto checkout after 6 hours
     if (hoursWorked >= 6) {
         showAlert('You have been automatically clocked out after 6 hours of work time.', 'info');
-        clockOut();
+        
+        // Automatically clock out with summary
+        const notes = 'Auto checkout after 6 hours';
+        const task = currentStatus.current_task || 'Work completed';
+        
+        const data = {
+            notes: notes,
+            task: task
+        };
+        
+        fetch('/api/timesheet/clock-out', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadTimesheetStatus();
+                loadTimesheetEntries();
+            }
+        })
+        .catch(error => {
+            console.error('Auto checkout error:', error);
+        });
     }
 }
 
