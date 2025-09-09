@@ -1426,8 +1426,16 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
         // Single day - show month/day format
         dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     } else {
-        // Multiple days - show start and end dates
-        dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+        // Multiple days - show compact start and end dates
+        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        // Check if same month to make text more compact
+        if (startDate.getMonth() === endDate.getMonth()) {
+            dateText = `${startDate.getDate()}-${endDate.getDate()} ${startDate.toLocaleDateString('en-US', { month: 'short' })}`;
+        } else {
+            dateText = `${startMonth} - ${endMonth}`;
+        }
     }
     
     bar.textContent = dateText;
@@ -1472,8 +1480,8 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     }
     
     // Stack bars vertically to prevent overlap
-    const barHeight = 20;
-    const barSpacing = 25; // Space between bars
+    const barHeight = 24;
+    const barSpacing = 30; // Space between bars (increased for oval bars)
     bar.style.top = `${15 + (barIndex * barSpacing)}px`; // Stack bars vertically
     bar.style.position = 'absolute';
     
