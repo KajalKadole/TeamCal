@@ -1457,34 +1457,12 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     const startOffset = startPeriodIndex * cellWidth;
     let width = (endPeriodIndex - startPeriodIndex + 1) * cellWidth;
     
-    // Position bar based on view type with proper date alignment
+    // Position bar based on view type
     if (currentTimelineView === 'week') {
-        // Week view - position bars according to actual dates within the week
-        const periodStart = new Date(periods[startPeriodIndex]);
-        const periodEnd = new Date(periods[endPeriodIndex]);
-        periodEnd.setDate(periodEnd.getDate() + 6);
-        
-        // Calculate precise positioning within the week based on actual dates
-        const eventStartDate = new Date(event.start);
-        const eventEndDate = new Date(event.end || event.start);
-        
-        if (startPeriodIndex === endPeriodIndex) {
-            // Single week event - position based on actual days within the week
-            const daysFromWeekStart = Math.floor((eventStartDate - periodStart) / (1000 * 60 * 60 * 24));
-            const eventDuration = Math.max(1, Math.floor((eventEndDate - eventStartDate) / (1000 * 60 * 60 * 24)) + 1);
-            
-            const dayWidth = cellWidth / 7;
-            const startDayOffset = Math.max(0, daysFromWeekStart) * dayWidth;
-            const barWidthFromDays = Math.min(eventDuration, 7 - Math.max(0, daysFromWeekStart)) * dayWidth;
-            
-            // Stretch the bar to be more prominent
-            bar.style.left = `${startOffset + startDayOffset + 0.5}%`;
-            bar.style.width = `${Math.max(barWidthFromDays - 1, cellWidth * 0.85)}%`;
-        } else {
-            // Multi-week event - stretch across weeks with full width
-            bar.style.left = `${startOffset + 0.3}%`;
-            bar.style.width = `${Math.max(width - 0.6, width * 0.95)}%`;
-        }
+        // Week-wise positioning: bars fill entire week columns
+        const padding = 0.5; // Small padding for aesthetics
+        bar.style.left = `${startOffset + padding}%`;
+        bar.style.width = `${Math.max(width - (padding * 2), cellWidth * 0.9)}%`;
     } else {
         // Month view - make bars longer and fill more of the month column
         const monthPadding = 0.5; // Smaller padding for longer bars
