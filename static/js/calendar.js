@@ -1257,15 +1257,12 @@ function renderGanttChart(data) {
             periods.push(weekStart);
         }
     } else {
-        // Generate month timeline (12 months - 2 past + 10 future)
+        // Generate single month timeline (current month only)
         const currentDate = new Date();
-        const startMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
+        const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         
-        totalColumns = 12;
-        for (let i = 0; i < 12; i++) {
-            const monthStart = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
-            periods.push(monthStart);
-        }
+        totalColumns = 1;
+        periods.push(currentMonth);
     }
     
     // Create timeline headers
@@ -1446,7 +1443,7 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     bar.title = `${eventType}\nDate: ${event.start}${event.end && event.end !== event.start ? ' - ' + event.end : ''}\nUser: ${event.title.split(' - ')[0]}`;
     
     // Position the bar using percentage-based positioning
-    const totalCols = currentTimelineView === 'week' ? 5 : 12;
+    const totalCols = currentTimelineView === 'week' ? 5 : 1;
     const cellWidth = 100 / totalCols;
     const startOffset = startPeriodIndex * cellWidth;
     let width = (endPeriodIndex - startPeriodIndex + 1) * cellWidth;
