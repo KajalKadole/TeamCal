@@ -1277,7 +1277,13 @@ function renderGanttChart(data) {
         title.className = 'gantt-week-title';
         
         if (currentTimelineView === 'week') {
-            title.textContent = `Week ${index + 1}`;
+            // Show actual week dates for better context
+            const weekEnd = new Date(period);
+            weekEnd.setDate(period.getDate() + 6);
+            const startDay = period.getDate();
+            const endDay = weekEnd.getDate();
+            const monthName = period.toLocaleDateString('en-US', { month: 'short' });
+            title.textContent = `${startDay}-${endDay} ${monthName}`;
         } else {
             title.textContent = period.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         }
@@ -1446,30 +1452,44 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     bar.title = `${eventType}\nDate: ${event.start}${event.end && event.end !== event.start ? ' - ' + event.end : ''}\nUser: ${event.title.split(' - ')[0]}`;
     
     // Position the bar using percentage-based positioning
-    const totalCols = currentTimelineView === 'week' ? 16 : 12;
+    const totalCols = currentTimelineView === 'week' ? 5 : 12;
     const cellWidth = 100 / totalCols;
     const startOffset = startPeriodIndex * cellWidth;
     let width = (endPeriodIndex - startPeriodIndex + 1) * cellWidth;
     
-    // Position bar based on view type
+    // Position bar based on view type with proper date alignment
     if (currentTimelineView === 'week') {
-        // Week view - make bars longer and more spread out
-        const dayWidth = cellWidth / 7;
+        // Week view - position bars according to actual dates within the week
+        const periodStart = new Date(periods[startPeriodIndex]);
+        const periodEnd = new Date(periods[endPeriodIndex]);
+        periodEnd.setDate(periodEnd.getDate() + 6);
+        
+        // Calculate precise positioning within the week based on actual dates
+        const eventStartDate = new Date(event.start);
+        const eventEndDate = new Date(event.end || event.start);
         
         if (startPeriodIndex === endPeriodIndex) {
-            // Single week event - make it span most of the week column
-            bar.style.left = `${startOffset + 1}%`;
-            bar.style.width = `${Math.max(cellWidth - 2, 4)}%`;
+            // Single week event - position based on actual days within the week
+            const daysFromWeekStart = Math.floor((eventStartDate - periodStart) / (1000 * 60 * 60 * 24));
+            const eventDuration = Math.max(1, Math.floor((eventEndDate - eventStartDate) / (1000 * 60 * 60 * 24)) + 1);
+            
+            const dayWidth = cellWidth / 7;
+            const startDayOffset = Math.max(0, daysFromWeekStart) * dayWidth;
+            const barWidthFromDays = Math.min(eventDuration, 7 - Math.max(0, daysFromWeekStart)) * dayWidth;
+            
+            // Stretch the bar to be more prominent
+            bar.style.left = `${startOffset + startDayOffset + 0.5}%`;
+            bar.style.width = `${Math.max(barWidthFromDays - 1, cellWidth * 0.85)}%`;
         } else {
-            // Multi-week event - span across weeks with generous width
-            bar.style.left = `${startOffset + 0.5}%`;
-            bar.style.width = `${Math.max(width - 1, 12)}%`;
+            // Multi-week event - stretch across weeks with full width
+            bar.style.left = `${startOffset + 0.3}%`;
+            bar.style.width = `${Math.max(width - 0.6, width * 0.95)}%`;
         }
     } else {
         // Month view - make bars longer and fill more of the month column
-        const monthPadding = 0.8; // Smaller padding for longer bars
+        const monthPadding = 0.5; // Smaller padding for longer bars
         bar.style.left = `${startOffset + monthPadding}%`;
-        bar.style.width = `${Math.max(width - (monthPadding * 2), cellWidth * 0.9)}%`;
+        bar.style.width = `${Math.max(width - (monthPadding * 2), cellWidth * 0.92)}%`;
     }
     
     // Stack bars vertically with better spacing
