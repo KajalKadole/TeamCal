@@ -1277,13 +1277,7 @@ function renderGanttChart(data) {
         title.className = 'gantt-week-title';
         
         if (currentTimelineView === 'week') {
-            // Show actual week dates for better context
-            const weekEnd = new Date(period);
-            weekEnd.setDate(period.getDate() + 6);
-            const startDay = period.getDate();
-            const endDay = weekEnd.getDate();
-            const monthName = period.toLocaleDateString('en-US', { month: 'short' });
-            title.textContent = `${startDay}-${endDay} ${monthName}`;
+            title.textContent = `Week ${index + 1}`;
         } else {
             title.textContent = period.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         }
