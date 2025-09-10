@@ -1243,15 +1243,15 @@ function renderGanttChart(data) {
     let totalColumns = 0;
     
     if (currentTimelineView === 'week') {
-        // Generate week timeline (16 weeks - 4 past + 12 future)
+        // Generate week timeline (5 weeks - 1 past + current + 3 future)
         const startDate = new Date();
         const dayOfWeek = startDate.getDay();
         const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
         startDate.setDate(diff);
-        startDate.setDate(startDate.getDate() - (4 * 7));
+        startDate.setDate(startDate.getDate() - (1 * 7));
         
-        totalColumns = 16;
-        for (let i = 0; i < 16; i++) {
+        totalColumns = 5;
+        for (let i = 0; i < 5; i++) {
             const weekStart = new Date(startDate);
             weekStart.setDate(startDate.getDate() + (i * 7));
             periods.push(weekStart);
