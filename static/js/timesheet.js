@@ -297,11 +297,21 @@ function updateTeamStatusDisplay(teamStatus) {
         return;
     }
     
-    let html = '';
+    // Remove duplicates by user_id and keep the most recent entry
+    const uniqueMembers = {};
     teamStatus.forEach(member => {
+        if (!uniqueMembers[member.user_id] || 
+            (member.last_activity && member.last_activity > (uniqueMembers[member.user_id].last_activity || ''))) {
+            uniqueMembers[member.user_id] = member;
+        }
+    });
+    
+    let html = '';
+    Object.values(uniqueMembers).forEach(member => {
         const statusClass = member.is_clocked_in ? 'success' : 'secondary';
         const statusIcon = member.is_clocked_in ? 'fa-circle' : 'fa-circle-o';
-        const statusText = member.is_clocked_in ? member.status_message : 'Offline';
+        // Show only current status, no multi-line statuses
+        const statusText = member.is_clocked_in ? (member.status_message || 'Working') : 'Offline';
         
         let durationText = '';
         if (member.is_clocked_in && member.current_duration > 0) {
