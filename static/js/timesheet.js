@@ -432,8 +432,15 @@ function calculateStats(entries) {
         }
     });
     
-    document.getElementById('todayHours').textContent = (todayMinutes / 60).toFixed(1);
-    document.getElementById('weekHours').textContent = (weekMinutes / 60).toFixed(1);
+    const todayHoursEl = document.getElementById('todayHours');
+    const weekHoursEl = document.getElementById('weekHours');
+    
+    if (todayHoursEl) {
+        todayHoursEl.textContent = (todayMinutes / 60).toFixed(1);
+    }
+    if (weekHoursEl) {
+        weekHoursEl.textContent = (weekMinutes / 60).toFixed(1);
+    }
 }
 
 function getStartOfWeek(date) {
