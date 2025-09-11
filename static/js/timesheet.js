@@ -89,8 +89,13 @@ function updateUI() {
         document.getElementById('breakDurationDisplay').textContent = 
             `${breakHours.toString().padStart(2, '0')}:${breakMins.toString().padStart(2, '0')}`;
         
-        // Update status and task inputs
-        document.getElementById('statusSelect').value = currentStatus.status_message || 'Available';
+        // Update status display and task input
+        const statusValue = currentStatus.status_message || 'Available';
+        document.getElementById('statusSelect').value = statusValue;
+        const statusDisplay = document.getElementById('currentStatusDisplay');
+        if (statusDisplay) {
+            statusDisplay.textContent = statusValue;
+        }
         document.getElementById('currentTaskInput').value = currentStatus.current_task || '';
         
         // Start duration counter
@@ -508,8 +513,12 @@ function startBreak() {
             showAlert(data.message, 'success');
             // Set status to "On Break" in the UI
             const statusSelect = document.getElementById('statusSelect');
+            const statusDisplay = document.getElementById('currentStatusDisplay');
             if (statusSelect) {
                 statusSelect.value = 'On Break';
+            }
+            if (statusDisplay) {
+                statusDisplay.textContent = 'On Break';
             }
             loadTimesheetStatus(); // Refresh status
             loadTimesheetEntries(); // Refresh entries

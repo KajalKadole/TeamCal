@@ -86,13 +86,10 @@
                         
                         <div class="mb-3">
                             <label class="form-label">Current Status</label>
-                            <select id="statusSelect" class="form-select">
-                                <option value="Available">Available</option>
-                                <option value="In Meeting">In Meeting</option>
-                                <option value="On Break">On Break</option>
-                                <option value="Busy">Busy</option>
-                                <option value="Away">Away</option>
-                            </select>
+                            <div class="form-control bg-secondary text-white" style="border: none;">
+                                <span id="currentStatusDisplay">Available</span>
+                            </div>
+                            <input type="hidden" id="statusSelect" value="Available">
                         </div>
                         
                         <div class="mb-3">
