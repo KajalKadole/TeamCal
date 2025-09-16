@@ -25,6 +25,10 @@ class User(UserMixin, db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Admin who approved
     approved_at = db.Column(db.DateTime, nullable=True)
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=True)  # User's department
+    staff_number = db.Column(db.String(20), unique=True, nullable=True)  # Employee staff number
+    hourly_rate = db.Column(db.Numeric(10, 2), default=10.00)  # Hourly pay rate
+    standard_hours = db.Column(db.Integer, default=40)  # Standard weekly hours
+    overtime_rate = db.Column(db.Numeric(10, 2), default=15.00)  # Overtime hourly rate
     default_start_time = db.Column(db.String(5), default='09:00')  # Format: HH:MM
     default_end_time = db.Column(db.String(5), default='17:00')    # Format: HH:MM
     timezone = db.Column(db.String(50), default='UTC')  # User's timezone (e.g., 'Asia/Kolkata', 'Europe/Berlin', 'Europe/London')
