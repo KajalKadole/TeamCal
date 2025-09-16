@@ -42,6 +42,11 @@
                             <i class="fas fa-clock me-1"></i>Timesheet
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('weekly_timesheet') }}">
+                            <i class="fas fa-calendar-week me-1"></i>Weekly View
+                        </a>
+                    </li>
                     {% if current_user.is_admin %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('availability_analytics_page') }}">
