@@ -805,6 +805,130 @@ def timesheet():
     """Timesheet view for logging work hours"""
     return render_template('timesheet.html')
 
+@app.route('/timesheet/weekly')
+@login_required
+def weekly_timesheet():
+    """Weekly timesheet view"""
+    from datetime import datetime, timedelta
+    
+    # Get week parameter from query string (YYYY-MM-DD format for week start)
+    week_start_param = request.args.get('week')
+    
+    if week_start_param:
+        try:
+            week_start = datetime.strptime(week_start_param, '%Y-%m-%d').date()
+        except ValueError:
+            week_start = datetime.now().date()
+    else:
+        week_start = datetime.now().date()
+    
+    # Ensure week_start is a Monday
+    days_since_monday = week_start.weekday()
+    week_start = week_start - timedelta(days=days_since_monday)
+    week_end = week_start + timedelta(days=6)
+    
+    # Get timesheet entries for the week
+    entries = TimesheetEntry.query.filter(
+        TimesheetEntry.user_id == current_user.id,
+        TimesheetEntry.date >= week_start,
+        TimesheetEntry.date <= week_end
+    ).order_by(TimesheetEntry.date).all()
+    
+    # Get break entries for all timesheet entries this week
+    entry_ids = [entry.id for entry in entries]
+    breaks = {}
+    if entry_ids:
+        break_entries = BreakEntry.query.filter(
+            BreakEntry.timesheet_entry_id.in_(entry_ids)
+        ).all()
+        
+        for break_entry in break_entries:
+            if break_entry.timesheet_entry_id not in breaks:
+                breaks[break_entry.timesheet_entry_id] = []
+            breaks[break_entry.timesheet_entry_id].append(break_entry)
+    
+    # Create daily data structure
+    week_days = []
+    total_hours = 0
+    cumulative_hours = 0
+    
+    for i in range(7):
+        current_date = week_start + timedelta(days=i)
+        
+        # Find entry for this date
+        day_entry = None
+        for entry in entries:
+            if entry.date == current_date:
+                day_entry = entry
+                break
+        
+        if day_entry:
+            # Calculate lunch break times
+            lunch_out = None
+            lunch_in = None
+            entry_breaks = breaks.get(day_entry.id, [])
+            
+            # Find longest break (assumed to be lunch)
+            longest_break = None
+            for break_entry in entry_breaks:
+                if break_entry.break_end and (not longest_break or break_entry.duration > longest_break.duration):
+                    longest_break = break_entry
+            
+            if longest_break:
+                lunch_out = convert_utc_to_user_timezone(longest_break.break_start)
+                lunch_in = convert_utc_to_user_timezone(longest_break.break_end)
+            
+            daily_hours = day_entry.duration / 60  # Convert minutes to hours
+            total_hours += daily_hours
+            cumulative_hours += daily_hours
+            
+            week_days.append({
+                'date': current_date,
+                'weekday': current_date.strftime('%A'),
+                'entry': day_entry,
+                'start_time': convert_utc_to_user_timezone(day_entry.clock_in) if day_entry.clock_in else None,
+                'lunch_out': lunch_out,
+                'lunch_in': lunch_in,
+                'end_time': convert_utc_to_user_timezone(day_entry.clock_out) if day_entry.clock_out else None,
+                'daily_hours': daily_hours,
+                'cumulative_hours': cumulative_hours
+            })
+        else:
+            week_days.append({
+                'date': current_date,
+                'weekday': current_date.strftime('%A'),
+                'entry': None,
+                'start_time': None,
+                'lunch_out': None,
+                'lunch_in': None,
+                'end_time': None,
+                'daily_hours': 0,
+                'cumulative_hours': cumulative_hours
+            })
+    
+    # Calculate overtime
+    standard_hours = current_user.standard_hours or 40
+    overtime_hours = max(0, total_hours - standard_hours)
+    regular_hours = min(total_hours, standard_hours)
+    
+    # Calculate pay
+    regular_pay = regular_hours * float(current_user.hourly_rate or 0)
+    overtime_pay = overtime_hours * float(current_user.overtime_rate or 0)
+    gross_pay = regular_pay + overtime_pay
+    
+    return render_template('weekly_timesheet.html', 
+        user=current_user,
+        week_start=week_start,
+        week_end=week_end,
+        week_days=week_days,
+        total_hours=total_hours,
+        regular_hours=regular_hours,
+        overtime_hours=overtime_hours,
+        regular_pay=regular_pay,
+        overtime_pay=overtime_pay,
+        gross_pay=gross_pay
+    )
+
 @app.route('/api/timesheet/clock-in', methods=['POST'])
 @login_required
 def clock_in():
