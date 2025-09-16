@@ -916,6 +916,10 @@ def weekly_timesheet():
     overtime_pay = overtime_hours * float(current_user.overtime_rate or 0)
     gross_pay = regular_pay + overtime_pay
     
+    # Calculate previous and next week dates for navigation
+    prev_week = week_start - timedelta(days=7)
+    next_week = week_start + timedelta(days=7)
+    
     return render_template('weekly_timesheet.html', 
         user=current_user,
         week_start=week_start,
@@ -926,7 +930,9 @@ def weekly_timesheet():
         overtime_hours=overtime_hours,
         regular_pay=regular_pay,
         overtime_pay=overtime_pay,
-        gross_pay=gross_pay
+        gross_pay=gross_pay,
+        prev_week=prev_week,
+        next_week=next_week
     )
 
 @app.route('/api/timesheet/clock-in', methods=['POST'])

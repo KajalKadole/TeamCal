@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Timesheet{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 text-primary">Weekly Timesheet</h1>
+                <div>
+                    <a href="{{ url_for('timesheet') }}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-clock"></i> Time Tracking
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                        <i class="fas fa-print"></i> Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- Employee and Week Information -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Employee Information</h6>
+                            <p class="mb-1"><strong>Employee:</strong> {{ user.username }}</p>
+                            <p class="mb-1"><strong>Staff Number:</strong> {{ user.staff_number or 'N/A' }}</p>
+                            <p class="mb-0"><strong>Department:</strong> {{ user.department.name if user.department else 'Unassigned' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Week Information</h6>
+                            <p class="mb-1"><strong>Week Starting:</strong> {{ week_start.strftime('%B %d, %Y') }}</p>
+                            <p class="mb-1"><strong>Week Ending:</strong> {{ week_end.strftime('%B %d, %Y') }}</p>
+                            <p class="mb-0"><strong>Pay Period:</strong> {{ week_start.strftime('%m/%d/%Y') }} - {{ week_end.strftime('%m/%d/%Y') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timesheet Table -->
+            <div class="card mb-4">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0 timesheet-table">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 120px;">Date</th>
+                                    <th style="width: 100px;">Day</th>
+                                    <th style="width: 100px;">Start Time</th>
+                                    <th style="width: 100px;">Lunch Out</th>
+                                    <th style="width: 100px;">Lunch In</th>
+                                    <th style="width: 100px;">End Time</th>
+                                    <th style="width: 100px;">Daily Hours</th>
+                                    <th style="width: 120px;">Cumulative</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for day in week_days %}
+                                <tr class="{{ 'table-light' if loop.index % 2 == 0 else '' }}">
+                                    <td class="fw-medium">{{ day.date.strftime('%m/%d/%Y') }}</td>
+                                    <td>{{ day.weekday }}</td>
+                                    <td class="text-center">
+                                        {% if day.start_time %}
+                                            {{ day.start_time.strftime('%I:%M %p') }}
+                                        {% else %}
+                                            <span class="text-muted">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if day.lunch_out %}
+                                            {{ day.lunch_out.strftime('%I:%M %p') }}
+                                        {% else %}
+                                            <span class="text-muted">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if day.lunch_in %}
+                                            {{ day.lunch_in.strftime('%I:%M %p') }}
+                                        {% else %}
+                                            <span class="text-muted">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        {% if day.end_time %}
+                                            {{ day.end_time.strftime('%I:%M %p') }}
+                                        {% else %}
+                                            <span class="text-muted">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center fw-medium">
+                                        {% if day.daily_hours > 0 %}
+                                            {{ "%.2f"|format(day.daily_hours) }}
+                                        {% else %}
+                                            <span class="text-muted">0.00</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ "%.2f"|format(day.cumulative_hours) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary and Pay Information -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">Hours Summary</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>Total Hours:</strong></div>
+                                <div class="col-6 text-end">{{ "%.2f"|format(total_hours) }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>Regular Hours:</strong></div>
+                                <div class="col-6 text-end">{{ "%.2f"|format(regular_hours) }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6"><strong>Overtime Hours:</strong></div>
+                                <div class="col-6 text-end text-warning">{{ "%.2f"|format(overtime_hours) }}</div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6"><strong>Standard Hours:</strong></div>
+                                <div class="col-6 text-end text-muted">{{ user.standard_hours or 40 }}/week</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">Pay Calculation</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-2">
+                                <div class="col-6">Regular Pay:</div>
+                                <div class="col-6 text-end">${{ "%.2f"|format(regular_pay) }}</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-6">Overtime Pay:</div>
+                                <div class="col-6 text-end text-warning">${{ "%.2f"|format(overtime_pay) }}</div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6"><strong>Gross Pay:</strong></div>
+                                <div class="col-6 text-end"><strong class="text-success">${{ "%.2f"|format(gross_pay) }}</strong></div>
+                            </div>
+                            <small class="text-muted">
+                                Regular: ${{ "%.2f"|format(user.hourly_rate or 0) }}/hr | 
+                                Overtime: ${{ "%.2f"|format(user.overtime_rate or 0) }}/hr
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Week Navigation -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">Navigate Weeks</h6>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('weekly_timesheet', week=prev_week.strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-chevron-left"></i> Previous Week
+                                </a>
+                                <a href="{{ url_for('weekly_timesheet') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-calendar"></i> Current Week
+                                </a>
+                                <a href="{{ url_for('weekly_timesheet', week=next_week.strftime('%Y-%m-%d')) }}" class="btn btn-outline-primary">
+                                    Next Week <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header, .btn-group {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    .timesheet-table {
+        font-size: 12px;
+    }
+    .container-fluid {
+        padding: 0;
+    }
+}
+
+.timesheet-table {
+    font-size: 14px;
+}
+
+.timesheet-table th {
+    text-align: center;
+    font-weight: 600;
+    background-color: #495057 !important;
+}
+
+.timesheet-table td {
+    vertical-align: middle;
+    padding: 8px;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.text-warning {
+    color: #f39c12 !important;
+}
+
+.text-success {
+    color: #27ae60 !important;
+}
+</style>
+{% endblock %}
