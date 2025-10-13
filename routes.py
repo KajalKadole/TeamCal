@@ -1,13 +1,24 @@
-from flask import render_template, flash, redirect, url_for, request, jsonify
+from flask import Blueprint,render_template,render_template_string, flash, redirect, url_for, request, jsonify
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from app import app, db
+from models import  db
 from models import User, Department, AvailabilitySlot, BusySlot, LeaveDay, TimesheetEntry, UserStatus, BreakEntry
 from forms import LoginForm, RegistrationForm, AvailabilityForm, BusySlotForm, LeaveDayForm, ProfileForm, AddEmployeeForm, DepartmentForm
 from datetime import datetime, date, time
+from sqlalchemy.sql import func
 import json
 import sys
 import os
+from flask import make_response,send_file
+from reportlab.lib.pagesizes import letter,A4
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+from reportlab.lib.styles import getSampleStyleSheet
+import io
+# Create Blueprint FIRST before importing models
+main_bp = Blueprint('main', __name__)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from utils.timezone_helper import (
     convert_utc_to_user_timezone, 
@@ -17,16 +28,16 @@ from utils.timezone_helper import (
     get_user_timezone
 )
 
-@app.route('/')
+@main_bp.route('/')
 def index():
     if current_user.is_authenticated:
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     return render_template('index.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@main_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     form = LoginForm()
     if form.validate_on_submit():
@@ -43,15 +54,15 @@ def login():
                 login_user(user)
                 next_page = request.args.get('next')
                 flash(f'Welcome back, {user.username}!', 'success')
-                return redirect(next_page) if next_page else redirect(url_for('calendar'))
+                return redirect(next_page) if next_page else redirect(url_for('main.calendar'))
         flash('Invalid email or password.', 'danger')
     
     return render_template('login.html', form=form)
 
-@app.route('/register', methods=['GET', 'POST'])
+@main_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     form = RegistrationForm()
     if form.validate_on_submit():
@@ -65,29 +76,29 @@ def register():
         db.session.add(user)
         db.session.commit()
         flash('Registration successful! Your account is pending admin approval. You will be able to log in once approved.', 'info')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     return render_template('register.html', form=form)
 
 # Department management routes
-@app.route('/admin/departments')
+@main_bp.route('/admin/departments')
 @login_required
 def admin_departments():
     """Admin page to manage departments"""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     departments = Department.query.order_by(Department.name).all()
     return render_template('admin/departments.html', departments=departments)
 
-@app.route('/admin/departments/add', methods=['GET', 'POST'])
+@main_bp.route('/admin/departments/add', methods=['GET', 'POST'])
 @login_required
 def add_department():
     """Add a new department"""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     form = DepartmentForm()
     if form.validate_on_submit():
@@ -98,17 +109,17 @@ def add_department():
         db.session.add(department)
         db.session.commit()
         flash(f'Department "{department.name}" created successfully!', 'success')
-        return redirect(url_for('admin_departments'))
+        return redirect(url_for('main.admin_departments'))
     
     return render_template('admin/add_department.html', form=form)
 
-@app.route('/admin/departments/<int:dept_id>/edit', methods=['GET', 'POST'])
+@main_bp.route('/admin/departments/<int:dept_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_department(dept_id):
     """Edit a department"""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     department = Department.query.get_or_404(dept_id)
     form = DepartmentForm(obj=department)
@@ -125,11 +136,11 @@ def edit_department(dept_id):
         department.description = form.description.data
         db.session.commit()
         flash(f'Department "{department.name}" updated successfully!', 'success')
-        return redirect(url_for('admin_departments'))
+        return redirect(url_for('main.admin_departments'))
     
     return render_template('admin/edit_department.html', form=form, department=department)
 
-@app.route('/admin/departments/<int:dept_id>/employees')
+@main_bp.route('/admin/departments/<int:dept_id>/employees')
 @login_required
 def get_department_employees(dept_id):
     """Get available and assigned employees for a department"""
@@ -163,7 +174,7 @@ def get_department_employees(dept_id):
         'available': available
     })
 
-@app.route('/admin/departments/<int:dept_id>/assign/<int:user_id>', methods=['POST'])
+@main_bp.route('/admin/departments/<int:dept_id>/assign/<int:user_id>', methods=['POST'])
 @login_required
 def assign_employee_to_department(dept_id, user_id):
     """Assign an employee to a department"""
@@ -181,7 +192,7 @@ def assign_employee_to_department(dept_id, user_id):
         'message': f'{user.username} assigned to {department.name}'
     })
 
-@app.route('/admin/departments/<int:dept_id>/unassign/<int:user_id>', methods=['POST'])
+@main_bp.route('/admin/departments/<int:dept_id>/unassign/<int:user_id>', methods=['POST'])
 @login_required
 def unassign_employee_from_department(dept_id, user_id):
     """Unassign an employee from a department"""
@@ -198,7 +209,7 @@ def unassign_employee_from_department(dept_id, user_id):
         'message': f'{user.username} unassigned from department'
     })
 
-@app.route('/admin/departments/<int:dept_id>/delete', methods=['POST'])
+@main_bp.route('/admin/departments/<int:dept_id>/delete', methods=['POST'])
 @login_required
 def delete_department(dept_id):
     """Delete a department"""
@@ -224,19 +235,19 @@ def delete_department(dept_id):
     })
 
 # Admin routes for user approval management
-@app.route('/admin/users')
+@main_bp.route('/admin/users')
 @login_required
 def admin_users():
     """Admin page to manage user approvals"""
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     # Get all users with their approval status
     users = User.query.order_by(User.created_at.desc()).all()
     return render_template('admin/users.html', users=users)
 
-@app.route('/admin/users/<int:user_id>/approve', methods=['POST'])
+@main_bp.route('/admin/users/<int:user_id>/approve', methods=['POST'])
 @login_required
 def approve_user(user_id):
     """Approve a pending user"""
@@ -257,7 +268,7 @@ def approve_user(user_id):
         'message': f'User {user.username} has been approved'
     })
 
-@app.route('/admin/users/<int:user_id>/reject', methods=['POST'])
+@main_bp.route('/admin/users/<int:user_id>/reject', methods=['POST'])
 @login_required 
 def reject_user(user_id):
     """Reject a pending user"""
@@ -278,7 +289,7 @@ def reject_user(user_id):
         'message': f'User {user.username} has been rejected'
     })
 
-@app.route('/api/admin/pending-users-count')
+@main_bp.route('/api/admin/pending-users-count')
 @login_required
 def pending_users_count():
     """Get count of pending users for admin notification"""
@@ -286,9 +297,10 @@ def pending_users_count():
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
     count = User.query.filter_by(approval_status='pending').count()
+    
     return jsonify({'success': True, 'count': count})
 
-@app.route('/admin/users/<int:user_id>/department', methods=['POST'])
+@main_bp.route('/admin/users/<int:user_id>/department', methods=['POST'])
 @login_required
 def update_user_department(user_id):
     """Update a user's department assignment"""
@@ -317,7 +329,7 @@ def update_user_department(user_id):
         'message': message
     })
 
-@app.route('/api/departments')
+@main_bp.route('/api/departments')
 @login_required
 def get_departments_api():
     """Get all departments for API use - accessible to all users"""
@@ -326,14 +338,14 @@ def get_departments_api():
         'departments': [{'id': d.id, 'name': d.name, 'description': d.description} for d in departments]
     })
 
-@app.route('/logout')
+@main_bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
-@app.route('/calendar')
+@main_bp.route('/calendar')
 @login_required
 def calendar():
     # All users can now view all employees and departments for filtering
@@ -341,7 +353,7 @@ def calendar():
     departments = Department.query.order_by(Department.name).all()
     return render_template('calendar.html', users=users, departments=departments)
 
-@app.route('/profile', methods=['GET', 'POST'])
+@main_bp.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
     form = ProfileForm()
@@ -358,7 +370,7 @@ def profile():
         
         db.session.commit()
         flash('Profile updated successfully!', 'success')
-        return redirect(url_for('profile'))
+        return redirect(url_for('main.profile'))
     
     # Pre-populate form with current user data
     if request.method == 'GET':
@@ -373,18 +385,18 @@ def profile():
     
     return render_template('profile.html', form=form)
 
-@app.route('/admin')
+@main_bp.route('/admin')
 @login_required
 def admin():
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     form = AddEmployeeForm()
     users = User.query.all()
     return render_template('admin.html', form=form, users=users)
 
-@app.route('/admin/add_employee', methods=['POST'])
+@main_bp.route('/admin/add_employee', methods=['POST'])
 @login_required
 def add_employee():
     if not current_user.is_admin:
@@ -407,7 +419,7 @@ def add_employee():
             for error in errors:
                 flash(f'{field}: {error}', 'danger')
     
-    return redirect(url_for('admin'))
+    return redirect(url_for('main.admin'))
 
 # API Endpoints for Calendar Data
 def generate_user_color(user_id, username):
@@ -440,7 +452,7 @@ def generate_user_color(user_id, username):
     color_index = (user_id - 1) % len(colors)
     return colors[color_index]
 
-@app.route('/api/events')
+@main_bp.route('/api/events')
 @login_required
 def get_events():
     start_date = request.args.get('start')
@@ -509,12 +521,14 @@ def get_events():
             })
         
         # Leave days - user color with pattern
-        leave_days = LeaveDay.query.filter_by(user_id=user.id).all()
+        leave_days = LeaveDay.query.filter_by(user_id=user.id,approved_status='approved'  # CRITICAL: Only show approved leaves
+        ).all()
         for leave in leave_days:
             events.append({
                 'id': f'leave-{leave.id}',
                 'title': f'{user.username} - {leave.leave_type}',
-                'start': f'{leave.date}',
+                'start': f'{leave.start_date}',
+                'end':f'{leave.end_date}',
                 'allDay': True,
                 'color': user_color,
                 'borderColor': user_color,
@@ -528,7 +542,7 @@ def get_events():
     
     return jsonify(events)
 
-@app.route('/api/gantt-data')
+@main_bp.route('/api/gantt-data')
 @login_required
 def get_gantt_data():
     user_filter = request.args.get('user_id')
@@ -583,8 +597,8 @@ def get_gantt_data():
             user_events.append({
                 'id': f'leave-{leave.id}',
                 'title': f'{user.username} - {leave.leave_type}',
-                'start': f'{leave.date}',
-                'end': f'{leave.date}',
+                'start': f'{leave.start_date}',
+                'end': f'{leave.end_date}',
                 'type': 'leave'
             })
         
@@ -599,7 +613,7 @@ def get_gantt_data():
     
     return jsonify(gantt_data)
 
-@app.route('/api/availability', methods=['POST'])
+@main_bp.route('/api/availability', methods=['POST'])
 @login_required
 def add_availability():
     data = request.get_json()
@@ -620,7 +634,7 @@ def add_availability():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
-@app.route('/api/multi-availability', methods=['POST'])
+@main_bp.route('/api/multi-availability', methods=['POST'])
 @login_required
 def add_multi_availability():
     data = request.get_json()
@@ -692,7 +706,7 @@ def add_multi_availability():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 400
 
-@app.route('/api/busy', methods=['POST'])
+@main_bp.route('/api/busy', methods=['POST'])
 @login_required
 def add_busy_slot():
     data = request.get_json()
@@ -714,27 +728,28 @@ def add_busy_slot():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
-@app.route('/api/leave', methods=['POST'])
-@login_required
-def add_leave_day():
-    data = request.get_json()
+# @main_bp.route('/api/leave', methods=['POST'])
+# @login_required
+# def add_leave_day():
+#     data = request.get_json()
     
-    try:
-        leave = LeaveDay(
-            user_id=current_user.id,
-            date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
-            leave_type=data.get('leave_type', 'Leave'),
-            notes=data.get('notes', '')
-        )
+#     try:
+#         leave = LeaveDay(
+#             user_id=current_user.id,
+#             start_date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
+#             end_date=datetime.strptime(data['eventdate2'], '%Y-%m-%d').date(),
+#             leave_type=data.get('leave_type', 'Leave'),
+#             notes=data.get('notes', '')
+#         )
         
-        db.session.add(leave)
-        db.session.commit()
+#         db.session.add(leave)
+#         db.session.commit()
         
-        return jsonify({'success': True, 'id': leave.id})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+#         return jsonify({'success': True, 'id': leave.id})
+#     except Exception as e:
+#         return jsonify({'success': False, 'error': str(e)}), 400
 
-@app.route('/api/events/<event_type>/<int:event_id>', methods=['PUT'])
+@main_bp.route('/api/events/<event_type>/<int:event_id>', methods=['PUT'])
 @login_required
 def update_event(event_type, event_id):
     try:
@@ -774,7 +789,7 @@ def update_event(event_type, event_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 400
 
-@app.route('/api/events/<event_type>/<int:event_id>', methods=['DELETE'])
+@main_bp.route('/api/events/<event_type>/<int:event_id>', methods=['DELETE'])
 @login_required
 def delete_event(event_type, event_id):
     try:
@@ -799,13 +814,13 @@ def delete_event(event_type, event_id):
         return jsonify({'success': False, 'error': str(e)}), 400
 
 # Timesheet Routes
-@app.route('/timesheet')
+@main_bp.route('/timesheet')
 @login_required
 def timesheet():
     """Timesheet view for logging work hours"""
     return render_template('timesheet.html')
 
-@app.route('/timesheet/weekly')
+@main_bp.route('/timesheet/weekly')
 @login_required
 def weekly_timesheet():
     """Weekly timesheet view"""
@@ -935,7 +950,7 @@ def weekly_timesheet():
         next_week=next_week
     )
 
-@app.route('/api/timesheet/clock-in', methods=['POST'])
+@main_bp.route('/api/timesheet/clock-in', methods=['POST'])
 @login_required
 def clock_in():
     """Clock in user and start timesheet entry"""
@@ -991,7 +1006,7 @@ def clock_in():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/timesheet/clock-out', methods=['POST'])
+@main_bp.route('/api/timesheet/clock-out', methods=['POST'])
 @login_required
 def clock_out():
     """Clock out user and complete timesheet entry"""
@@ -1059,7 +1074,7 @@ def clock_out():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/timesheet/start-break', methods=['POST'])
+@main_bp.route('/api/timesheet/start-break', methods=['POST'])
 @login_required
 def start_break():
     """Start a break for the current user"""
@@ -1112,7 +1127,7 @@ def start_break():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/timesheet/end-break', methods=['POST'])
+@main_bp.route('/api/timesheet/end-break', methods=['POST'])
 @login_required
 def end_break():
     """End the current break for the current user"""
@@ -1161,7 +1176,7 @@ def end_break():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/timesheet/status', methods=['GET'])
+@main_bp.route('/api/timesheet/status', methods=['GET'])
 @login_required
 def get_timesheet_status():
     """Get current timesheet status for user"""
@@ -1239,7 +1254,7 @@ def check_and_perform_auto_checkout(user_id):
         print(f"Error in auto-checkout for user {user_id}: {str(e)}")
         return False
 
-@app.route('/api/timesheet/update-status', methods=['POST'])
+@main_bp.route('/api/timesheet/update-status', methods=['POST'])
 @login_required
 def update_user_status():
     """Update user's current status and task"""
@@ -1307,7 +1322,7 @@ def update_user_status():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/team/status', methods=['GET'])
+@main_bp.route('/api/team/status', methods=['GET'])
 @login_required
 def get_team_status():
     """Get current status of all team members"""
@@ -1356,7 +1371,7 @@ def get_team_status():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/team/public-status', methods=['GET'])
+@main_bp.route('/api/team/public-status', methods=['GET'])
 @login_required
 def get_public_team_status():
     """Get public team status (limited info for non-admin users)"""
@@ -1402,14 +1417,14 @@ def get_public_team_status():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/analytics')
+@main_bp.route('/analytics')
 @login_required
 def analytics():
     """Admin analytics dashboard"""
     
     if not current_user.is_admin:
         flash('Access denied. Admin privileges required.', 'danger')
-        return redirect(url_for('calendar'))
+        return redirect(url_for('main.calendar'))
     
     # Get basic stats for the template
     total_users = User.query.count()
@@ -1423,7 +1438,7 @@ def analytics():
                          total_entries=total_entries,
                          users=users)
 
-@app.route('/api/analytics/overview', methods=['GET'])
+@main_bp.route('/api/analytics/overview', methods=['GET'])
 @login_required
 def analytics_overview():
     """Get overview analytics data"""
@@ -1487,7 +1502,7 @@ def analytics_overview():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/analytics/work-hours-trend', methods=['GET'])
+@main_bp.route('/api/analytics/work-hours-trend', methods=['GET'])
 @login_required
 def analytics_work_hours_trend():
     """Get work hours trend data for charts"""
@@ -1535,7 +1550,7 @@ def analytics_work_hours_trend():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/analytics/user-productivity', methods=['GET'])
+@main_bp.route('/api/analytics/user-productivity', methods=['GET'])
 @login_required 
 def analytics_user_productivity():
     """Get user productivity metrics"""
@@ -1579,7 +1594,7 @@ def analytics_user_productivity():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/analytics/status-distribution', methods=['GET'])
+@main_bp.route('/api/analytics/status-distribution', methods=['GET'])
 @login_required
 def analytics_status_distribution():
     """Get current status distribution across team"""
@@ -1620,7 +1635,7 @@ def analytics_status_distribution():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/timesheet/entries', methods=['GET'])
+@main_bp.route('/api/timesheet/entries', methods=['GET'])
 @login_required
 def get_timesheet_entries():
     """Get timesheet entries for current user or all users (admin)"""
@@ -1673,7 +1688,7 @@ def get_timesheet_entries():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/availability/analytics')
+@main_bp.route('/api/availability/analytics')
 @login_required
 def availability_analytics():
     """Get availability analytics data from calendar"""
@@ -1681,7 +1696,6 @@ def availability_analytics():
         user_id = request.args.get('user_id')
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
-        
         # Build query for availability slots
         query = AvailabilitySlot.query
         
@@ -1719,11 +1733,11 @@ def availability_analytics():
             leave_query = leave_query.filter(LeaveDay.user_id == current_user.id)
         
         if start_date:
-            leave_query = leave_query.filter(LeaveDay.date >= datetime.strptime(start_date, '%Y-%m-%d').date())
+            leave_query = leave_query.filter(LeaveDay.start_date >= datetime.strptime(start_date, '%Y-%m-%d').date())
         if end_date:
-            leave_query = leave_query.filter(LeaveDay.date <= datetime.strptime(end_date, '%Y-%m-%d').date())
+            leave_query = leave_query.filter(LeaveDay.end_date <= datetime.strptime(end_date, '%Y-%m-%d').date())
         
-        leave_days = leave_query.order_by(LeaveDay.date.desc()).all()
+        leave_days = leave_query.order_by(LeaveDay.start_date.desc()).all()
         
         # Format availability data
         availability_data = []
@@ -1769,15 +1783,19 @@ def availability_analytics():
                 'type': 'leave',
                 'user_id': leave.user_id,
                 'username': leave.user.username,
-                'date': leave.date.isoformat(),
+                'date': leave.start_date.isoformat(),  # Add this for sorting
+                'start_date': leave.start_date.isoformat(),
+                'end_date': leave.end_date.isoformat(),
                 'start_time': 'All Day',
                 'end_time': 'All Day',
                 'status': 'Leave',
                 'notes': leave.notes or ''
             })
-        
+        print("<pre>")    
+        print(availability_data)
+        print("</pre>")
         # Sort by date
-        availability_data.sort(key=lambda x: x['date'], reverse=True)
+        availability_data.sort(key=lambda x:x.get('date') or x.get('start_date'), reverse=True)
         
         # Calculate analytics
         def calculate_duration_hours(start_time, end_time):
@@ -1810,7 +1828,7 @@ def availability_analytics():
         # Get unique dates for availability rate calculation
         availability_dates = set([slot.date for slot in availability_slots])
         busy_dates = set([slot.date for slot in busy_slots])
-        leave_dates = set([leave.date for leave in leave_days])
+        leave_dates = set([leave.start_date for leave in leave_days])
         all_dates = availability_dates.union(busy_dates).union(leave_dates)
         
         analytics = {
@@ -1820,7 +1838,8 @@ def availability_analytics():
             'total_scheduled_days': len(all_dates),
             'availability_rate': round((len(availability_dates) / len(all_dates) * 100) if all_dates else 0, 1)
         }
-        
+        print(availability_data)
+        print(analytics)
         return jsonify({
             'success': True, 
             'data': availability_data,
@@ -1830,13 +1849,13 @@ def availability_analytics():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/availability-analytics')
+@main_bp.route('/availability-analytics')
 @login_required
 def availability_analytics_page():
     """Availability analytics dashboard page"""
     return render_template('availability_analytics.html')
 
-@app.route('/api/users')
+@main_bp.route('/api/users')
 @login_required
 def get_users():
     """Get list of users (admin only)"""
@@ -1850,7 +1869,7 @@ def get_users():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/timesheet/download', methods=['GET'])
+@main_bp.route('/api/timesheet/download', methods=['GET'])
 @login_required
 def download_timesheet():
     """Download timesheet entries as CSV"""
@@ -1948,3 +1967,467 @@ def download_timesheet():
         )
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@main_bp.route("/invoice/<int:user_id>", methods=['GET'])
+@login_required
+def generate_invoice(user_id):
+    employee = User.query.get_or_404(user_id)
+
+    # Count unique days worked
+    days_worked = (
+        db.session.query(func.date(TimesheetEntry.clock_in))
+        .filter(TimesheetEntry.user_id == user_id)
+        .distinct()
+        .count()
+    )
+    # # Calculate overtime
+    # standard_hours = current_user.standard_hours or 40
+    # overtime_hours = max(0, total_hours - standard_hours)
+    # regular_hours = min(total_hours, standard_hours)
+    
+    # Calculate pay
+    regular_pay = float(current_user.hourly_rate or 0)
+    overtime_pay = float(current_user.overtime_rate or 0)
+    daily_rate = regular_pay + overtime_pay
+    total_amount = days_worked * daily_rate
+
+    return render_template(
+        "invoice.html",
+        employee=employee,
+        days_worked=days_worked,
+        total_amount=total_amount,now=datetime.now()
+    )   
+@main_bp.route("/invoice/<int:user_id>/pdf")
+@login_required
+def download_invoice_pdf(user_id):
+    employee = current_user
+
+    # Calculate invoice data
+    days_worked = (
+        db.session.query(func.date(TimesheetEntry.clock_in))
+        .filter(TimesheetEntry.user_id == employee.id)
+        .distinct()
+        .count()
+    )
+
+    daily_rate = float(employee.hourly_rate or 0) + float(employee.overtime_rate or 0)
+    total_amount = days_worked * daily_rate
+    now = datetime.now()
+
+    # Generate PDF in memory
+    buffer = io.BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    # Company logo path
+    logo_path = os.path.join("static", "images", "company_logo.png")
+    if os.path.exists(logo_path):
+        pdf.drawImage(logo_path, 40, height - 100, width=120, height=60, preserveAspectRatio=True)
+
+    # Company header
+    pdf.setFont("Helvetica-Bold", 18)
+    pdf.setFillColorRGB(0.1, 0.3, 0.6)  # Company blue
+    pdf.drawString(200, height - 60, "Ziqsy Team Calendar")
+
+    pdf.setFont("Helvetica", 10)
+    pdf.setFillColor(colors.black)
+    pdf.drawString(200, height - 80, "Empowering Teams with Smarter Scheduling")
+    pdf.drawString(200, height - 95, f"Date: {now.strftime('%B %d, %Y')}")
+
+    # Invoice title
+    pdf.setFont("Helvetica-Bold", 20)
+    pdf.setFillColor(colors.black)
+    pdf.drawString(230, height - 150, "INVOICE")
+
+    # Employee info section
+    y = height - 200
+    pdf.setFont("Helvetica-Bold", 12)
+    pdf.drawString(40, y, "Employee Information:")
+    pdf.setFont("Helvetica", 11)
+    pdf.drawString(60, y - 20, f"Name: {employee.username}")
+    pdf.drawString(60, y - 40, f"Email: {employee.email}")
+    pdf.drawString(60, y - 60, f"Department: {employee.department.name if employee.department else 'N/A'}")
+    pdf.drawString(60, y - 80, f"Role: {'Admin' if employee.is_admin else 'Employee'}")
+
+    # Work summary
+    y -= 130
+    pdf.setFont("Helvetica-Bold", 12)
+    pdf.drawString(40, y, "Work Summary:")
+
+    pdf.setFont("Helvetica", 11)
+    y -= 25
+    pdf.drawString(60, y, f"Days Worked: {days_worked}")
+    y -= 20
+    pdf.drawString(60, y, f"Daily Rate: ₹{daily_rate:.2f}")
+    y -= 20
+    pdf.drawString(60, y, f"Total Amount: ₹{total_amount:.2f}")
+
+    # Total section highlight
+    y -= 40
+    pdf.setFillColorRGB(0.9, 0.95, 1)
+    pdf.rect(40, y - 10, 520, 40, fill=1, stroke=0)
+    pdf.setFillColor(colors.black)
+    pdf.setFont("Helvetica-Bold", 13)
+    pdf.drawString(50, y + 5, f"Total Payable: ₹{total_amount:.2f}")
+
+    # Footer message
+    pdf.setFont("Helvetica-Oblique", 10)
+    pdf.setFillColor(colors.gray)
+    pdf.drawString(40, 50, "Thank you for your hard work and dedication!")
+    pdf.drawString(40, 35, "Generated automatically by Ziqsy Team Calendar")
+
+    pdf.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"Invoice_{employee.username}_{now.strftime('%Y%m%d')}.pdf",
+        mimetype="application/pdf"
+    )
+"""
+Add these routes to your routes.py file for Leave Request Management
+"""
+
+from flask import render_template, flash, redirect, url_for, request, jsonify
+from flask_login import login_required, current_user
+from datetime import datetime, timedelta
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from utils.email_service import send_leave_request_notification, send_leave_status_update
+
+
+@main_bp.route('/leave-requests')
+@login_required
+def leave_requests_page():
+    """Leave requests management page (for HR and Managers)"""
+    # if not (current_user.is_admin or current_user.is_hr or current_user.role == 'manager'):
+    #     flash('Access denied. This page is for HR and Managers only.', 'danger')
+    #     return redirect(url_for('main.calendar'))
+    
+    return render_template('leave_requests.html')
+
+
+@main_bp.route('/api/leave-requests/submit', methods=['POST'])
+@login_required
+def submit_leave_request():
+    """Submit a new leave request"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['start_date', 'end_date', 'leave_type', 'reason']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'{field} is required'}), 400
+        
+        # Parse dates
+        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        
+        # Validate date range
+        if end_date < start_date:
+            return jsonify({'success': False, 'error': 'End date must be after start date'}), 400
+        
+        # Check if user already has a leave request for these dates
+        existing_request = LeaveDay.query.filter(
+            LeaveDay.user_id == current_user.id,
+            LeaveDay.approved_status.in_(['pending', 'approved']),
+            LeaveDay.start_date <= end_date,
+            LeaveDay.end_date >= start_date
+        ).first()
+        
+        if existing_request:
+            return jsonify({
+                'success': False, 
+                'error': 'You already have a leave request for overlapping dates'
+            }), 400
+        # Calculate total days
+        total_days = (end_date - start_date).days + 1
+          
+        # Create leave request
+        leave_request = LeaveDay(
+            user_id=current_user.id,
+            start_date=start_date,
+            end_date=end_date,
+            leave_type=data['leave_type'],
+            notes=data['reason'],
+            approved_status='pending',
+            hr_id=current_user.id if current_user.id else None
+        )
+        
+        db.session.add(leave_request)
+        db.session.commit()
+        recipients=[]
+        # Send email notifications to HR and Manager
+        specific_recipients = [
+            {'email': "sba@ziqsy.com",'username': "Shabnam"},
+            {'email': "sk@ziqsy.com", 'username': "Suman"},
+            { 'email': "hrziqsy@gmail.com",'username': "Hr"},
+            { 'email': "kajalskadole888@gmail.com",'username': "Kajal"}
+        ]
+
+        seen_emails = set()
+        for recipient in specific_recipients:
+            if recipient["email"] not in seen_emails:
+               seen_emails.add(recipient["email"])
+               recipients.append(recipient)
+
+        # Add all admins as fallback
+        if not recipients:
+            admin_users = User.query.filter_by(is_admin=True).all()
+            recipients.extend(admin_users)
+        # Remove duplicates
+        print(recipients)
+        
+        # Send notifications
+        if recipients:
+            try:
+                send_leave_request_notification(leave_request, specific_recipients)
+            except Exception as e:
+                print(f"Error sending email notifications: {e}")
+                # Don't fail the request if email fails
+        
+        return jsonify({
+            'success': True,
+            'message': 'Leave request submitted successfully. You will be notified once it is reviewed.',
+            'request_id': leave_request.id,
+            'total_days': total_days
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/api/leave-requests', methods=['GET'])
+@login_required
+def get_leave_requests():
+    """Get leave requests based on user role"""
+    try:
+        status_filter = request.args.get('status', 'pending')
+        
+        # Build query based on user role
+        if current_user.is_admin or current_user.is_hr:
+            # HR and Admin can see all requests
+            query = LeaveDay.query
+        else:
+            # Regular users can only see their own requests
+            query = LeaveDay.query.filter_by(user_id=current_user.id)
+        
+        # Apply status filter
+        if status_filter == 'pending':
+            query = query.filter_by(approved_status='pending')
+        elif status_filter == 'approved':
+            query = query.filter_by(approved_status='approved')
+        elif status_filter == 'rejected':
+            query = query.filter_by(approved_status='rejected')
+        # If status_filter == 'all', don't filter by status
+        
+        # Get requests ordered by submission date
+        requests = query.order_by(LeaveDay.submitted_at.desc()).all()
+        
+        requests_data = []
+        for req in requests:
+            # Calculate total days
+            total_days = (req.end_date - req.start_date).days + 1
+            
+            requests_data.append({
+                'id': req.id,
+                'user_id': req.user_id,
+                'username': req.user.username,
+                'email': req.user.email,
+                'department': req.user.department.name if req.user.department else 'N/A',
+                'start_date': req.start_date.isoformat(),
+                'end_date': req.end_date.isoformat(),
+                'leave_type': req.leave_type,
+                'reason': req.notes or '',
+                'total_days': total_days,
+                'status': req.approved_status,
+                'hr_status': req.hr_status,
+                'submitted_at': req.submitted_at.isoformat() if req.submitted_at else datetime.utcnow().isoformat(),
+                'hr_reviewed_at': req.hr_reviewed_at.isoformat() if req.hr_reviewed_at else None,
+            })
+        
+        return jsonify({'success': True, 'requests': requests_data})
+        
+    except Exception as e:
+        print(f"Error getting leave requests: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+@main_bp.route('/api/leave-requests/<int:request_id>/approve', methods=['POST'])
+@login_required
+def approve_leave_request(request_id):
+    """Approve a leave request (HR or Admin)"""
+    try:
+        leave_request = LeaveDay.query.get_or_404(request_id)
+        data = request.get_json() or {}
+        comments = data.get('comments', '')
+        
+        # Check permissions
+        if not (current_user.is_hr or current_user.is_admin):
+            return jsonify({'success': False, 'error': 'Access denied. Only HR and Admin can approve leaves.'}), 403
+        
+        # Update status
+        leave_request.approved_status = 'approved'
+        leave_request.approved = True
+        leave_request.hr_status = 'approved'
+        leave_request.hr_id = current_user.id
+        leave_request.hr_reviewed_at = datetime.utcnow()
+        
+        # Append comments to notes
+        if comments:
+            existing_notes = leave_request.notes or ''
+            leave_request.notes = f"{existing_notes}\n\nHR Comments: {comments}"
+        
+        db.session.commit()
+        
+        # Send approval email (uncomment when ready)
+        # try:
+        #     send_leave_status_update(leave_request, 'approved', comments)
+        # except Exception as e:
+        #     print(f"Error sending approval email: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Leave request approved successfully',
+            'status': leave_request.approved_status
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error approving leave: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/api/leave-requests/<int:request_id>/reject', methods=['POST'])
+@login_required
+def reject_leave_request(request_id):
+    """Reject a leave request (HR or Admin)"""
+    try:
+        leave_request = LeaveDay.query.get_or_404(request_id)
+        data = request.get_json() or {}
+        comments = data.get('comments', 'No reason provided')
+        
+        # Check permissions
+        if not (current_user.is_hr or current_user.is_admin):
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        # Update status
+        leave_request.approved_status = 'rejected'
+        leave_request.approved = False
+        leave_request.hr_status = 'rejected'
+        leave_request.hr_id = current_user.id
+        leave_request.hr_reviewed_at = datetime.utcnow()
+        
+        # Append comments to notes
+        existing_notes = leave_request.notes or ''
+        leave_request.notes = f"{existing_notes}\n\nRejection Reason: {comments}"
+        
+        db.session.commit()
+        
+        # Send rejection email (uncomment when ready)
+        # try:
+        #     send_leave_status_update(leave_request, 'rejected', comments)
+        # except Exception as e:
+        #     print(f"Error sending rejection email: {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Leave request rejected'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error rejecting leave: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/api/leave-requests/my-requests', methods=['GET'])
+@login_required
+def get_my_leave_requests():
+    """Get current user's leave requests"""
+    try:
+        requests = LeaveDay.query.filter_by(user_id=current_user.id).order_by(
+            LeaveDay.submitted_at.desc()
+        ).all()
+        
+        requests_data = []
+        for req in requests:
+            # Calculate total days
+            total_days = (req.end_date - req.start_date).days + 1
+            
+            requests_data.append({
+                'id': req.id,
+                'start_date': req.start_date.isoformat(),
+                'end_date': req.end_date.isoformat(),
+                'leave_type': req.leave_type,
+                'reason': req.notes or '',
+                'total_days': total_days,
+                'status': req.approved_status,
+                'hr_status': req.hr_status,
+                'submitted_at': req.submitted_at.isoformat() if req.submitted_at else datetime.utcnow().isoformat(),
+                'can_cancel': req.approved_status == 'pending'
+            })
+        
+        return jsonify({'success': True, 'requests': requests_data})
+        
+    except Exception as e:
+        print(f"Error getting my requests: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/api/leave-requests/<int:request_id>/cancel', methods=['POST'])
+@login_required
+def cancel_leave_request(request_id):
+    """Cancel a pending leave request"""
+    try:
+        leave_request = LeaveDay.query.get_or_404(request_id)
+        
+        # Check if user owns the request
+        if leave_request.user_id != current_user.id:
+            return jsonify({'success': False, 'error': 'Access denied'}), 403
+        
+        # Can only cancel pending requests
+        if leave_request.approved_status != 'pending':
+            return jsonify({'success': False, 'error': 'Can only cancel pending requests'}), 400
+        
+        # Delete the request
+        db.session.delete(leave_request)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Leave request cancelled'})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error cancelling leave: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@main_bp.route('/api/leave-requests/pending-count', methods=['GET'])
+@login_required
+def get_pending_leave_count():
+    """Get count of pending leave requests for HR/Admin"""
+    try:
+        if current_user.is_admin or current_user.is_hr:
+            count = LeaveDay.query.filter_by(approved_status='pending').count()
+        else:
+            count = 0
+        
+        return jsonify({'success': True, 'count': count})
+        
+    except Exception as e:
+        return jsonify({'success': False,})

@@ -22,19 +22,19 @@
                         
                         {% if not current_user.is_authenticated %}
                         <div class="hero-actions">
-                            <a href="{{ url_for('register') }}" class="btn btn-hero-primary">
+                            <a href="{{ url_for('main.register') }}" class="btn btn-hero-primary">
                                 <i class="fas fa-rocket me-2"></i>Get Started Free
                             </a>
-                            <a href="{{ url_for('login') }}" class="btn btn-hero-secondary">
+                            <a href="{{ url_for('main.login') }}" class="btn btn-hero-secondary">
                                 <i class="fas fa-sign-in-alt me-2"></i>Sign In
                             </a>
                         </div>
                         {% else %}
                         <div class="hero-actions">
-                            <a href="{{ url_for('calendar') }}" class="btn btn-hero-primary">
+                            <a href="{{ url_for('main.calendar') }}" class="btn btn-hero-primary">
                                 <i class="fas fa-calendar-check me-2"></i>View Calendar
                             </a>
-                            <a href="{{ url_for('timesheet') }}" class="btn btn-hero-secondary">
+                            <a href="{{ url_for('main.timesheet') }}" class="btn btn-hero-secondary">
                                 <i class="fas fa-clock me-2"></i>Timesheet
                             </a>
                         </div>
@@ -235,10 +235,10 @@
                             Join teams worldwide who trust Ziqsy Team Calendar for efficient scheduling and time management.
                         </p>
                         <div class="cta-actions">
-                            <a href="{{ url_for('register') }}" class="btn btn-cta-primary">
+                            <a href="{{ url_for('main.register') }}" class="btn btn-cta-primary">
                                 <i class="fas fa-rocket me-2"></i>Start Free Today
                             </a>
-                            <a href="{{ url_for('login') }}" class="btn btn-cta-secondary">
+                            <a href="{{ url_for('main.login') }}" class="btn btn-cta-secondary">
                                 <i class="fas fa-play me-2"></i>Try Demo
                             </a>
                         </div>

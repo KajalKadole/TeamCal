@@ -16,12 +16,15 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    
 </head>
 <body>
+    {% include 'includes/leave_request_modal.html' %}
+    
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <i class="fas fa-calendar-alt me-2"></i>Ziqsy Team Calendar
             </a>
             
@@ -33,46 +36,56 @@
                 <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('calendar') }}">
+                        <a class="nav-link" href="{{ url_for('main.calendar') }}">
                             <i class="fas fa-calendar me-1"></i>Calendar
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('timesheet') }}">
+                        <a class="nav-link" href="{{ url_for('main.timesheet') }}">
                             <i class="fas fa-clock me-1"></i>Timesheet
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('weekly_timesheet') }}">
+                        <a class="nav-link" href="{{ url_for('main.weekly_timesheet') }}">
                             <i class="fas fa-calendar-week me-1"></i>Weekly View
                         </a>
                     </li>
                     {% if current_user.is_admin %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('availability_analytics_page') }}">
+                        <a class="nav-link" href="{{ url_for('main.availability_analytics_page') }}">
                             <i class="fas fa-chart-bar me-1"></i>Availability Analytics
                         </a>
                     </li>
                     {% endif %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('profile') }}">
+                        <a class="nav-link" href="{{ url_for('main.profile') }}">
                             <i class="fas fa-user me-1"></i>Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.leave_requests_page') }}">
+                            <i class="fas fa-umbrella-beach me-1"></i>Leave
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('main.generate_invoice', user_id=current_user.id) }}">
+                            <i class="fas fa-file-invoice me-1"></i>Invoice
                         </a>
                     </li>
                     {% if current_user.is_admin %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin') }}">
+                        <a class="nav-link" href="{{ url_for('main.admin') }}">
                             <i class="fas fa-cog me-1"></i>Admin
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_users') }}">
+                        <a class="nav-link" href="{{ url_for('main.admin_users') }}">
                             <i class="fas fa-users me-1"></i>User Management
                             <span class="badge bg-warning text-dark ms-1" id="pendingUsersBadge" style="display: none;">0</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_departments') }}">
+                        <a class="nav-link" href="{{ url_for('main.admin_departments') }}">
                             <i class="fas fa-building me-1"></i>Departments
                         </a>
                     </li>
@@ -87,17 +100,17 @@
                             <i class="fas fa-user-circle me-1"></i>{{ current_user.username }}
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.profile') }}">Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('main.logout') }}">Logout</a></li>
                         </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        <a class="nav-link" href="{{ url_for('main.login') }}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                        <a class="nav-link" href="{{ url_for('main.register') }}">Register</a>
                     </li>
                     {% endif %}
                 </ul>

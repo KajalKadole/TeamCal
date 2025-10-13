@@ -255,7 +255,7 @@ function showAddModal(eventType) {
             break;
             
         case 'leave':
-            modalTitle.textContent = 'Request Leave';
+            modalTitle.textContent = 'On Leave';
             timeFields.style.display = 'none';
             titleField.style.display = 'none';
             leaveTypeField.style.display = 'block';
@@ -309,7 +309,6 @@ function addEvent() {
         showAlert('End time must be after start time.', 'danger');
         return;
     }
-    
     // Submit the event
     const endpoint = `/api/${currentEventType}`;
     
@@ -1473,7 +1472,6 @@ function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
     timelineRow.appendChild(bar);
 }
 
-// Quick availability modal for drag/click selection
 function showQuickAvailabilityModal(startDate, endDate) {
     const isMultiDay = startDate !== endDate;
     

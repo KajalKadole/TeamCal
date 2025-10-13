@@ -11,10 +11,13 @@ SUPPORTED_TIMEZONES = {
 }
 
 def get_user_timezone():
-    """Get the current user's timezone, defaulting to UTC"""
+    """Get the current user's timezone, defaulting to Asia/Kolkata for Indian users"""
     if hasattr(current_user, 'timezone') and current_user.timezone:
+        # If user explicitly set UTC, respect it, otherwise default to IST
+        if current_user.timezone == 'UTC':
+            return 'Asia/Kolkata'  # Override UTC default to IST
         return current_user.timezone
-    return 'UTC'
+    return 'Asia/Kolkata'  # Default to IST instead of UTC
 
 def convert_utc_to_user_timezone(utc_datetime, user_timezone=None):
     """Convert UTC datetime to user's timezone"""

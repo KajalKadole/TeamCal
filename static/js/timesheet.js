@@ -75,7 +75,7 @@ function updateUI() {
         clockedOutView.style.display = 'none';
         
         // Update clock in time - show exact login time
-        const clockInTime = new Date(currentStatus.clock_in);
+        const clockInTime = new Date();
         document.getElementById('clockInTime').textContent = 
             clockInTime.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: true});
         
@@ -235,7 +235,69 @@ function confirmClockOut() {
         showAlert('Failed to clock out', 'danger');
     });
 }
+// Global variable to track current status
+// let currentStatusMessage = 'Available';
 
+// Update status button click handler
+document.addEventListener('DOMContentLoaded', function() {
+    const updateStatusBtn = document.getElementById('updateStatusBtn');
+    if (updateStatusBtn) {
+        updateStatusBtn.addEventListener('click', showStatusUpdateModal);
+    }
+});
+
+// Show status update modal/prompt
+function showStatusUpdateModal() {
+    // Create modal HTML
+    const modalHTML = `
+        <div class="modal fade" id="statusUpdateModal" tabindex="-1" aria-labelledby="statusUpdateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="statusUpdateModalLabel">Update Status</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Select your status:</p>
+                        <select class="form-select" id="modalStatusSelect">
+                            <option value="Available">Available</option>
+                            <option value="In Meeting">In Meeting</option>
+                            <option value="Busy">Busy</option>
+                            <option value="Lunch Break">Lunch Break</option>
+                            <option value="On Break">On Break</option>
+                            <option value="Do Not Disturb">Do Not Disturb</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="confirmStatusBtn">Update Status</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Initialize and show modal
+    const modalElement = document.getElementById('statusUpdateModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    // Handle status update
+    document.getElementById('confirmStatusBtn').addEventListener('click', function() {
+        const newStatus = document.getElementById('modalStatusSelect').value;
+        document.getElementById('statusSelect').value = newStatus;
+        updateStatus();
+        modal.hide();
+    });
+    
+    // Clean up modal after it's hidden
+    modalElement.addEventListener('hidden.bs.modal', function () {
+        modalElement.remove();
+    });
+}
 function updateStatus() {
     const statusMessage = document.getElementById('statusSelect').value;
     const currentTask = document.getElementById('currentTaskInput').value;

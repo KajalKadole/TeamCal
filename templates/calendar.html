@@ -54,9 +54,9 @@
                     <button class="btn btn-danger btn-sm" onclick="showAddModal('busy')">
                         <i class="fas fa-ban me-1"></i>Mark Busy
                     </button>
-                    <button class="btn btn-warning btn-sm" onclick="showAddModal('leave')">
-                        <i class="fas fa-umbrella-beach me-1"></i>Request Leave
-                    </button>
+                    <!-- <button class="btn btn-warning btn-sm" onclick="showLeaveRequestModal()">
+                        <i class="fas fa-umbrella-beach me-1"></i>On Leave
+                    </button> -->
                 </div>
             </div>
             <div class="card-body">
@@ -218,10 +218,13 @@
             <div class="modal-body">
                 <form id="addEventForm">
                     <div class="mb-3">
-                        <label class="form-label">Date</label>
+                        <label class="form-label">Start Date</label>
                         <input type="date" id="eventDate" class="form-control" required>
                     </div>
-                    
+                    <div class="mb-3">
+                        <label  id="eventDate2lable"class="form-label">End Date</label>
+                        <input type="date" id="eventDate2" class="form-control" required>
+                    </div>
                     <div id="timeFields" class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Start Time</label>

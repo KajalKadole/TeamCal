@@ -36,6 +36,7 @@ function loadUsers() {
                 data.users.forEach(user => {
                     userSelect.innerHTML += `<option value="${user.id}">${user.username}</option>`;
                 });
+
             }
         })
         .catch(error => console.error('Error loading users:', error));
@@ -162,19 +163,22 @@ function updateAvailabilityTable(data) {
     }
     
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No availability data found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No availability data found</td></tr>';
         return;
     }
     
     let html = '';
     data.forEach(entry => {
         const date = new Date(entry.date).toLocaleDateString();
+        const end_date = new Date(entry.end_date).toLocaleDateString();
+        
         const statusClass = getStatusClass(entry.type);
         const statusBadge = `<span class="badge bg-${statusClass}">${entry.status}</span>`;
         
         html += `
             <tr>
                 <td>${date}</td>
+                <td>${end_date}</td>
                 <td>${entry.username}</td>
                 <td style="text-transform: capitalize;">${entry.type}</td>
                 <td>${entry.start_time || '--'}</td>
@@ -208,13 +212,16 @@ function exportToCSV() {
         return;
     }
     
-    const headers = ['Date', 'User', 'Type', 'Start Time', 'End Time', 'Status', 'Notes'];
+    const headers = ['Date/Start Date','End Date', 'User', 'Type', 'Start Time', 'End Time', 'Status', 'Notes'];
     const csvContent = [
         headers.join(','),
         ...currentData.map(entry => {
             const date = new Date(entry.date).toISOString().split('T')[0];
+            const end_date = new Date(entry.end_date).toLocaleDateString();
+        
             return [
                 date,
+                end_date||'',
                 entry.username,
                 entry.type,
                 entry.start_time || '',

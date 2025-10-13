@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice - Ziqsy Team Calendar{% endblock %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/invoice.css') }}">
+{% block content %}
+<div class="container py-5">
+  <div class="card shadow-lg border-0 rounded-4">
+    <div class="card-body p-5">
+      <!-- Header with logo and company info -->
+      <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+        <div>
+          <img src="{{ url_for('static', filename='images/company_logo.png') }}" alt="Company Logo" height="60">
+          <h4 class="mt-2 mb-0 text-primary fw-bold">Ziqsy Team Calendar</h4>
+          <p class="text-muted small mb-0">Empowering Teams with Smarter Scheduling</p>
+        </div>
+        <div class="text-end">
+          <h5 class="fw-bold mb-1">Invoice</h5>
+          <p class="text-muted mb-0">Date: {{ now.strftime('%B %d, %Y') }}</p>
+          <p class="text-muted">Invoice ID: #{{ employee.id }}{{ now.strftime('%m%d%H') }}</p>
+        </div>
+      </div>
+
+      <!-- Employee Details -->
+      <div class="mb-4">
+        <h6 class="text-uppercase text-secondary fw-bold">Employee Details</h6>
+        <div class="row mt-2">
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Name:</strong> {{ employee.username }}</p>
+            <p class="mb-1"><strong>Email:</strong> {{ employee.email }}</p>
+          </div>
+          <div class="col-md-6">
+            <p class="mb-1"><strong>Department:</strong> {{ employee.department.name if employee.department else "N/A" }}</p>
+            <p class="mb-1"><strong>Role:</strong> {{ "Admin" if employee.is_admin else "Employee" }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Work Summary Table -->
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Days Worked</th>
+              <th>Daily Rate (₹)</th>
+              <th>Total Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ days_worked }}</td>
+              <td>{{ "%.2f"|format(employee.hourly_rate + employee.overtime_rate) }}</td>
+              <td class="fw-bold text-success">{{ "%.2f"|format(total_amount) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Footer with thank you message -->
+      <div class="text-center mt-5">
+        <h5 class="fw-bold text-success">Total Payable: ₹{{ "%.2f"|format(total_amount) }}</h5>
+        <p class="text-muted mt-2">Thank you for your hard work and dedication!</p>
+        <a href="{{ url_for('main.download_invoice_pdf', user_id=employee.id) }}" class="btn btn-primary btn-lg mt-3">
+          <i class="fas fa-file-download me-2"></i>Download PDF
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
