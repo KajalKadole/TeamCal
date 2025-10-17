@@ -2,7 +2,7 @@ from app import app
 from models import db
 from models import User, Department
 from werkzeug.security import generate_password_hash
-
+import os
 # Initialize database on startup
 with app.app_context():
     # db.drop_all()
@@ -39,5 +39,5 @@ with app.app_context():
         print("✓ Admin created")
 
 if __name__ == '__main__':
-    print("🚀 Team Calendar: http://127.0.0.1:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port=init(os.environ.get("PORT",5000))
+    app.run(host="0.0.0.0",port=port)
