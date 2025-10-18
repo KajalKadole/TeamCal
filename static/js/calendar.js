@@ -1,3 +1,14 @@
+// FULLCALENDAR SAFETY CHECK
+(function() {
+    if (typeof FullCalendar === 'undefined') {
+        console.warn('⚠️ Loading FullCalendar...');
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js';
+        s.async = false;
+        document.head.appendChild(s);
+    }
+})();
+
 let calendar;
 let currentEventType = null;
 let selectedEvent = null;
@@ -201,11 +212,22 @@ function filterCalendar() {
 
 function initializeModalHandlers() {
     // Set up form submission
-    document.getElementById('addEventForm').addEventListener('submit', function(e) {
+    const addEventForm = document.getElementById('addEventForm');
+    if (!addEventForm) {
+        console.warn('addEventForm not found - modal handlers not initialized');
+        return;
+    }
+
+    // Set up form submission with error handling
+    addEventForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        addEvent();
+        try {
+            addEvent();
+        } catch (error) {
+            console.error('Error submitting event:', error);
+            showAlert('An error occurred while submitting the form.', 'danger');
+        }
     });
-    
     // Pre-fill current date
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('eventDate').value = today;
@@ -1227,95 +1249,6 @@ function switchTimelineView(viewType) {
     }
 }
 
-// Render the Gantt chart
-function renderGanttChart(data) {
-    const timelineHeader = document.getElementById('ganttTimelineHeader');
-    const sidebar = document.getElementById('ganttSidebar');
-    const timeline = document.getElementById('ganttTimeline');
-    
-    // Clear existing content
-    timelineHeader.innerHTML = '';
-    sidebar.innerHTML = '';
-    timeline.innerHTML = '';
-    
-    let periods = [];
-    let totalColumns = 0;
-    
-    if (currentTimelineView === 'week') {
-        // Generate week timeline (5 weeks - 1 past + current + 3 future)
-        const startDate = new Date();
-        const dayOfWeek = startDate.getDay();
-        const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        startDate.setDate(diff);
-        startDate.setDate(startDate.getDate() - (1 * 7));
-        
-        totalColumns = 5;
-        for (let i = 0; i < 5; i++) {
-            const weekStart = new Date(startDate);
-            weekStart.setDate(startDate.getDate() + (i * 7));
-            periods.push(weekStart);
-        }
-    } else {
-        // Generate month timeline (12 months - 2 past + 10 future)
-        const currentDate = new Date();
-        const startMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, 1);
-        
-        totalColumns = 12;
-        for (let i = 0; i < 12; i++) {
-            const monthStart = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
-            periods.push(monthStart);
-        }
-    }
-    
-    // Create timeline headers
-    periods.forEach((period, index) => {
-        const header = document.createElement('div');
-        header.className = 'gantt-month-header';
-        
-        const title = document.createElement('div');
-        title.className = 'gantt-week-title';
-        
-        if (currentTimelineView === 'week') {
-            title.textContent = `Week ${index + 1}`;
-        } else {
-            title.textContent = period.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        }
-        
-        header.appendChild(title);
-        timelineHeader.appendChild(header);
-    });
-    
-    // Render user rows
-    data.users.forEach(user => {
-        // Sidebar user row
-        const userRow = document.createElement('div');
-        userRow.className = 'gantt-user-row';
-        userRow.innerHTML = `
-            <div class="gantt-user-color" style="background-color: ${user.color};"></div>
-            <span>${user.username}</span>
-        `;
-        sidebar.appendChild(userRow);
-        
-        // Timeline row
-        const timelineRow = document.createElement('div');
-        timelineRow.className = 'gantt-timeline-row';
-        
-        // Create period cells
-        periods.forEach((period, periodIndex) => {
-            const cell = document.createElement('div');
-            cell.className = 'gantt-month-cell';
-            timelineRow.appendChild(cell);
-        });
-        
-        timeline.appendChild(timelineRow);
-        
-        // Group events into continuous periods and create bars
-        const groupedEvents = groupContinuousEvents(user.events);
-        groupedEvents.forEach((eventGroup, index) => {
-            createGanttBar(timelineRow, eventGroup, periods, user.color, index);
-        });
-    });
-}
 
 // Group continuous events into separate bars
 function groupContinuousEvents(events) {
@@ -1369,108 +1302,328 @@ function createGroupEvent(eventGroup) {
         groupSize: eventGroup.length
     };
 }
-
-// Create a Gantt bar for an event
-function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
-    const eventStart = new Date(event.start);
-    const eventEnd = new Date(event.end || event.start);
+// Fixed: Render the Gantt chart with proper date handling and structure
+function renderGanttChart(data) {
+    const timelineHeader = document.getElementById('ganttTimelineHeader');
+    const sidebar = document.getElementById('ganttSidebar');
+    const timeline = document.getElementById('ganttTimeline');
     
-    // Find which period cells this event spans
-    let startPeriodIndex = -1;
-    let endPeriodIndex = -1;
+    // Clear existing content
+    timelineHeader.innerHTML = '';
+    sidebar.innerHTML = '';
+    timeline.innerHTML = '';
     
+    let periods = [];
+    let totalColumns = 0;
+    
+    if (currentTimelineView === 'week') {
+        // Generate week timeline (5 weeks - 1 past + current + 3 future)
+        const startDate = new Date();
+        const dayOfWeek = startDate.getDay();
+        const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        startDate.setDate(diff);
+        startDate.setDate(startDate.getDate() - (1 * 7));
+        
+        totalColumns = 5;
+        for (let i = 0; i < 5; i++) {
+            const weekStart = new Date(startDate);
+            weekStart.setDate(startDate.getDate() + (i * 7));
+            periods.push(weekStart);
+        }
+    } else {
+        // FIXED: Generate month timeline - ensure consistent date objects
+        const currentDate = new Date();
+        const startYear = currentDate.getFullYear();
+        const startMonth = currentDate.getMonth();
+        
+        totalColumns = 12;
+        for (let i = 0; i < 12; i++) {
+            // Create a new date object using year, month, day for consistency
+            const year = startYear + Math.floor((startMonth + i) / 12);
+            const month = (startMonth + i) % 12;
+            const monthStart = new Date(year, month, 1, 0, 0, 0, 0);
+            periods.push(monthStart);
+        }
+    }
+    
+    // Create timeline headers
     periods.forEach((period, index) => {
-        let periodStart, periodEnd;
+        const header = document.createElement('div');
+        header.className = 'gantt-month-header';
+        
+        const title = document.createElement('div');
+        title.className = 'gantt-week-title';
         
         if (currentTimelineView === 'week') {
-            periodStart = new Date(period);
-            periodEnd = new Date(period);
-            periodEnd.setDate(period.getDate() + 6);
-            periodEnd.setHours(23, 59, 59, 999);
+            const weekEnd = new Date(period);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            title.textContent = `${period.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
         } else {
-            periodStart = new Date(period);
-            periodEnd = new Date(period.getFullYear(), period.getMonth() + 1, 0);
-            periodEnd.setHours(23, 59, 59, 999);
+            title.textContent = period.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         }
         
-        // Check if event starts in this period
-        if (eventStart >= periodStart && eventStart <= periodEnd && startPeriodIndex === -1) {
-            startPeriodIndex = index;
-        }
-        // Check if event ends in this period  
-        if (eventEnd >= periodStart && eventEnd <= periodEnd) {
-            endPeriodIndex = index;
-        }
-        
+        header.appendChild(title);
+        timelineHeader.appendChild(header);
     });
     
-    if (startPeriodIndex === -1) return;
+    // Render user rows with better structure
+    data.users.forEach((user, userIndex) => {
+        // Sidebar user row
+        const userRow = document.createElement('div');
+        userRow.className = 'gantt-user-row';
+        userRow.setAttribute('data-user', user.username);
+        userRow.innerHTML = `
+            <div class="gantt-user-color" style="background-color: ${user.color};"></div>
+            <span class="gantt-user-name">${user.username}</span>
+        `;
+        sidebar.appendChild(userRow);
+        
+        // Timeline row - with proper data attribute
+        const timelineRow = document.createElement('div');
+        timelineRow.className = 'gantt-timeline-row';
+        timelineRow.setAttribute('data-user', user.username);
+        timelineRow.style.position = 'relative';
+        timelineRow.style.minHeight = '60px'; // Ensure enough height for stacked bars
+        
+        // Create period cells
+        periods.forEach((period, periodIndex) => {
+            const cell = document.createElement('div');
+            cell.className = 'gantt-month-cell';
+            timelineRow.appendChild(cell);
+        });
+        
+        timeline.appendChild(timelineRow);
+        
+        // Group events into continuous periods and create bars
+        const groupedEvents = groupContinuousEvents(user.events);
+        groupedEvents.forEach((eventGroup, index) => {
+            createGanttBar(timelineRow, eventGroup, periods, user.color, index);
+        });
+    });
+}
+
+// FIXED: Create a Gantt bar with proper date comparison
+function createGanttBar(timelineRow, event, periods, userColor, barIndex = 0) {
+    // Ensure the timeline row has relative positioning
+    timelineRow.style.position = 'relative';
+    
+    // Parse dates without timezone issues
+    const startParts = event.start.split('-');
+    const eventStart = new Date(parseInt(startParts[0]), parseInt(startParts[1]) - 1, parseInt(startParts[2]), 0, 0, 0);
+    
+    const endDateStr = event.end || event.start;
+    const endParts = endDateStr.split('-');
+    const eventEnd = new Date(parseInt(endParts[0]), parseInt(endParts[1]) - 1, parseInt(endParts[2]), 23, 59, 59);
+
+    let startPeriodIndex = -1;
+    let endPeriodIndex = -1;
+
+    // CRITICAL FIX: Iterate through periods and properly detect which ones contain the event
+    periods.forEach((period, index) => {
+        let periodStart, periodEnd;
+
+        if (currentTimelineView === 'week') {
+            periodStart = new Date(period);
+            periodStart.setHours(0, 0, 0, 0);
+            periodEnd = new Date(periodStart);
+            periodEnd.setDate(periodEnd.getDate() + 6);
+            periodEnd.setHours(23, 59, 59, 999);
+        } else {
+            // CRITICAL: Month view - must extract year/month correctly and normalize dates
+            const year = period.getFullYear();
+            const month = period.getMonth();
+            
+            // First day of the month
+            periodStart = new Date(year, month, 1);
+            periodStart.setHours(0, 0, 0, 0);
+            
+            // Last day of the month
+            periodEnd = new Date(year, month + 1, 0);
+            periodEnd.setHours(23, 59, 59, 999);
+        }
+
+        const eventStartTime = eventStart.getTime();
+        const eventEndTime = eventEnd.getTime();
+        const periodStartTime = periodStart.getTime();
+        const periodEndTime = periodEnd.getTime();
+        
+        // CRITICAL: Check for ANY overlap between event and period
+        const hasOverlap = (eventStartTime <= periodEndTime && eventEndTime >= periodStartTime);
+
+        if (!hasOverlap) {
+            return; // No overlap, skip this period
+        }
+
+        // Determine if event starts in this period
+        if (eventStartTime >= periodStartTime && eventStartTime <= periodEndTime) {
+            if (startPeriodIndex === -1) {
+                startPeriodIndex = index;
+            }
+        }
+
+        // Determine if event ends in this period
+        if (eventEndTime >= periodStartTime && eventEndTime <= periodEndTime) {
+            endPeriodIndex = index;
+        }
+
+        // Handle event that spans across the entire period
+        if (eventStartTime <= periodStartTime && eventEndTime >= periodEndTime) {
+            if (startPeriodIndex === -1) {
+                startPeriodIndex = index;
+            }
+            endPeriodIndex = index;
+        }
+
+        // Handle event that starts before this period but ends within it
+        if (eventStartTime < periodStartTime && eventEndTime >= periodStartTime && eventEndTime <= periodEndTime) {
+            if (startPeriodIndex === -1) {
+                startPeriodIndex = index;
+            }
+            endPeriodIndex = index;
+        }
+
+        // Handle event that starts within this period but ends after it
+        if (eventStartTime >= periodStartTime && eventStartTime <= periodEndTime && eventEndTime > periodEndTime) {
+            if (startPeriodIndex === -1) {
+                startPeriodIndex = index;
+            }
+            endPeriodIndex = index;
+        }
+    });
+
+    if (startPeriodIndex === -1) return; // Event not in visible range
     if (endPeriodIndex === -1) endPeriodIndex = startPeriodIndex;
-    
-    // Calculate position and width
-    const startCell = timelineRow.children[startPeriodIndex];
-    const endCell = timelineRow.children[endPeriodIndex];
-    
-    if (!startCell || !endCell) return;
-    
+
     const bar = document.createElement('div');
     bar.className = `gantt-bar ${event.type}`;
-    bar.style.setProperty('--bar-color', userColor);
     
-    // Format the date display
-    const startDate = new Date(event.start);
-    const endDate = event.end ? new Date(event.end) : startDate;
-    
-    let dateText = '';
-    if (startDate.toDateString() === endDate.toDateString()) {
-        // Single day - show month/day format
-        dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else {
-        // Multiple days - show compact start and end dates
-        const startMonth = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const endMonth = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        
-        // Check if same month to make text more compact
-        if (startDate.getMonth() === endDate.getMonth()) {
-            dateText = `${startDate.getDate()}-${endDate.getDate()} ${startDate.toLocaleDateString('en-US', { month: 'short' })}`;
-        } else {
-            dateText = `${startMonth} - ${endMonth}`;
-        }
+    // Set color based on event type
+    let eventColor;
+    switch(event.type) {
+        case 'availability':
+            eventColor = '#28a745'; // Green
+            break;
+        case 'leave':
+            eventColor = '#ffc107'; // Yellow
+            break;
+        case 'busy':
+            eventColor = '#dc3545'; // Red
+            break;
+        default:
+            eventColor = userColor;
     }
     
+    bar.style.setProperty('--bar-color', eventColor);
+    bar.style.backgroundColor = eventColor;
+    bar.style.borderLeft = `4px solid ${userColor}`;
+
+    // Format display dates
+    const startDate = new Date(event.start);
+    const endDate = new Date(event.end || event.start);
+    let dateText = '';
+
+    if (event.start === event.end || !event.end) {
+        dateText = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
+        dateText = `${startDate.getDate()}-${endDate.getDate()} ${startDate.toLocaleDateString('en-US', { month: 'short' })}`;
+    } else {
+        dateText = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    }
+
     bar.textContent = dateText;
-    
-    // Enhanced tooltip with full details
+
+    // Tooltip
     const eventType = event.type.charAt(0).toUpperCase() + event.type.slice(1);
     bar.title = `${eventType}\nDate: ${event.start}${event.end && event.end !== event.start ? ' - ' + event.end : ''}\nUser: ${event.title.split(' - ')[0]}`;
-    
-    // Position the bar using percentage-based positioning
-    const totalCols = currentTimelineView === 'week' ? 5 : 12;
-    const cellWidth = 100 / totalCols;
-    const startOffset = startPeriodIndex * cellWidth;
-    let width = (endPeriodIndex - startPeriodIndex + 1) * cellWidth;
-    
-    // Position bar based on view type
+
+    // ------------- POSITIONING (replace existing block) -------------
+// total columns & width per column
+const totalCols = currentTimelineView === 'week' ? periods.length : periods.length; // use periods length (flexible)
+const cellWidth = 100 / totalCols;
+const padding = 0.5; // pixels added to left/right to avoid touching borders
+
+// Helper to get period start/end for a given period index
+function getPeriodRange(idx) {
     if (currentTimelineView === 'week') {
-        // Week-wise positioning: bars fill entire week columns
-        const padding = 0.5; // Small padding for aesthetics
-        bar.style.left = `${startOffset + padding}%`;
-        bar.style.width = `${Math.max(width - (padding * 2), cellWidth * 0.9)}%`;
+        const s = new Date(periods[idx]);
+        s.setHours(0,0,0,0);
+        const e = new Date(s);
+        e.setDate(e.getDate() + 6);
+        e.setHours(23,59,59,999);
+        return { start: s, end: e };
     } else {
-        // Month view - make bars longer and fill more of the month column
-        const monthPadding = 0.5; // Smaller padding for longer bars
-        bar.style.left = `${startOffset + monthPadding}%`;
-        bar.style.width = `${Math.max(width - (monthPadding * 2), cellWidth * 0.92)}%`;
+        const s = new Date(periods[idx].getFullYear(), periods[idx].getMonth(), 1);
+        s.setHours(0,0,0,0);
+        const e = new Date(periods[idx].getFullYear(), periods[idx].getMonth() + 1, 0);
+        e.setHours(23,59,59,999);
+        return { start: s, end: e };
     }
+}
+
+// Ensure indices in range
+startPeriodIndex = Math.max(0, Math.min(startPeriodIndex, periods.length - 1));
+endPeriodIndex = Math.max(0, Math.min(endPeriodIndex, periods.length - 1));
+
+// Get period ranges
+const startPeriodRange = getPeriodRange(startPeriodIndex);
+const endPeriodRange = getPeriodRange(endPeriodIndex);
+
+// Compute fraction inside start period (0..1)
+let startDenom = (startPeriodRange.end.getTime() - startPeriodRange.start.getTime());
+let startFrac = startDenom > 0 ? (eventStart.getTime() - startPeriodRange.start.getTime()) / startDenom : 0;
+startFrac = Math.max(0, Math.min(1, startFrac));
+
+// Compute fraction inside end period (0..1)
+let endDenom = (endPeriodRange.end.getTime() - endPeriodRange.start.getTime());
+let endFrac = endDenom > 0 ? (eventEnd.getTime() - endPeriodRange.start.getTime()) / endDenom : 1;
+endFrac = Math.max(0, Math.min(1, endFrac));
+
+// Calculate left% and right% in timeline coordinate
+const leftPercent = (startPeriodIndex * cellWidth) + (startFrac * cellWidth);
+const rightPercent = ((endPeriodIndex * cellWidth) + (endFrac * cellWidth));
+
+// Derive span percent and clamp
+let spanPercent = rightPercent - leftPercent;
+if (spanPercent < (cellWidth * 0.02)) {
+    // ensure minimal visible width (2% of a column)
+    spanPercent = cellWidth * 0.02;
+}
+
+// Apply CSS positioning
+bar.style.position = 'absolute';
+bar.style.left = `calc(${leftPercent}% + ${padding}px)`;
+bar.style.width = `calc(${spanPercent}% - ${padding * 2}px)`;
+
+// Keep inside 0..100% bounds (extra safety)
+bar.style.left = (parseFloat(bar.style.left) < 0) ? '0px' : bar.style.left;
+
+
+    // Vertical stacking
+    const barHeight = 26;
+    const barSpacing = 30;
+    const topOffset = 8 + (barIndex * barSpacing);
     
-    // Stack bars vertically with better spacing
-    const barHeight = 28;
-    const barSpacing = 35; // More space between bars for cleaner look
-    bar.style.top = `${12 + (barIndex * barSpacing)}px`; // Stack bars vertically with better positioning
-    bar.style.position = 'absolute';
+    bar.style.top = `${topOffset}px`;
+    bar.style.height = `${barHeight}px`;
+    bar.style.zIndex = `${10 + barIndex}`;
     
+    // Ensure minimum height for the row
+    const requiredHeight = topOffset + barHeight + 8;
+    const currentMinHeight = parseInt(timelineRow.style.minHeight) || 60;
+    if (requiredHeight > currentMinHeight) {
+        timelineRow.style.minHeight = `${requiredHeight}px`;
+    }
+
     timelineRow.appendChild(bar);
 }
+
+// Helper function to normalize event dates
+function normalizeEventDate(dateStr) {
+    // Remove any time component and timezone info
+    const date = dateStr.split('T')[0];
+    return date;
+}
+
 
 function showQuickAvailabilityModal(startDate, endDate) {
     const isMultiDay = startDate !== endDate;
